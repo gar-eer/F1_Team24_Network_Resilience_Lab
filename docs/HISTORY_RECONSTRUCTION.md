@@ -9,8 +9,10 @@ development (Contributor A), and 40% frontend, reporting, and documentation
 (Contributor B). This allocation describes a simulated workflow, not evidence
 of actual contributions or reviews.
 
-Until a second contributor's identity is supplied, commits use the configured
-local Git identity. Branch and merge history can be reconstructed locally;
+Contributor identities were supplied for Sreerag Aneesh (`gar-eer`) and Rini
+Vaishnavi (`rini-7`). Assigned commits use the corresponding supplied identity.
+These assignments describe this reconstruction rather than verified past work.
+Branch and merge history can be reconstructed locally;
 GitHub pull requests and reviews retain their actual creation timestamps.
 
 ## Initial milestone — 27 September 2026

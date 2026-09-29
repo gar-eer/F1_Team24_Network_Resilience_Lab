@@ -1,0 +1,16 @@
+{
+  "scenarios": [
+    {
+      "id": "baseline",
+      "description": "Reference transfer under a constant bandwidth limit",
+      "payload_bytes": 65536,
+      "bandwidth_kbps": 512
+    },
+    {
+      "id": "low-bandwidth",
+      "description": "Repeat the same transfer at half the baseline bandwidth",
+      "payload_bytes": 65536,
+      "bandwidth_kbps": 256
+    }
+  ]
+}

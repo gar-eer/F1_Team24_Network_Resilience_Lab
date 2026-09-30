@@ -14,8 +14,19 @@ python -m venv .venv
 ```
 
 Invoking the environment's Python directly does not require activating it.
-At this milestone, `main.py` contains only an entry point placeholder and
-produces no output. There are no automated tests yet.
+At this milestone, `main.py` runs a fixed 64 KiB simulation at 512 decimal kbps
+and prints the size and elapsed time. The simulator sleeps for each chunk's
+ideal transfer duration; it does not send bytes over a network. The theoretical
+duration is 1.024 seconds, with actual runtime increased by scheduling overhead.
+
+Run the command-line smoke test with:
+
+```powershell
+python -m unittest discover -v
+```
+
+The test checks the reported payload, bandwidth, and minimum duration. Real
+socket integration tests belong to the later HTTP transfer milestones.
 
 ## Planned milestones
 

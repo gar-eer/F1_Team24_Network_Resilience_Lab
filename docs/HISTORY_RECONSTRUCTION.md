@@ -20,3 +20,9 @@ GitHub pull requests and reviews retain their actual creation timestamps.
 Create the Python package, entry point placeholder, dependency declaration,
 ignore rules, and introductory documentation. No transfer functionality exists
 at this milestone.
+
+## Original simulator milestone — 30 September 2026
+
+Introduce a delay-based simulator with a fixed 64 KiB payload, 512 kbps limit,
+4 KiB chunks, command-line reporting, and a timing smoke test. This is an
+approximate recreation of the original concept, not recovered original source.

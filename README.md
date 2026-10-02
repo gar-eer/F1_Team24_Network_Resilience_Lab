@@ -15,9 +15,10 @@ These describe the overall roadmap; only the initial simulator is implemented.
 ## Development status
 
 The original delay-based transfer simulator is available. It accounts for a
-64 KiB transfer at a fixed 512 kbps in 4 KiB chunks and prints the total bytes
+64 KiB transfer at 512 kbps in 4 KiB chunks by default and prints the total bytes
 and elapsed time. It generates no network traffic and does not change system
-bandwidth settings. Configurable settings and real networking will follow.
+bandwidth settings. Payload size, bandwidth, and chunk size are configurable.
+Real networking will follow.
 
 ## Requirements
 
@@ -44,7 +45,19 @@ the workflow and planned milestones.
 python -m unittest discover -v
 ```
 
-The smoke test checks command-line output and the minimum simulated duration.
+The tests check custom settings, partial chunks, invalid input, command-line
+output, and minimum simulated durations at different bandwidth limits.
+
+## Configure a simulation
+
+```powershell
+python main.py --size-bytes 131072 --bandwidth-kbps 256 --chunk-bytes 4096
+python main.py --help
+```
+
+Sizes must be positive integers. Bandwidth must be a positive finite number in
+decimal kbps. The example has a theoretical duration of 4.096 seconds; actual
+runtime also includes scheduling overhead. Scenario presets are not loaded yet.
 
 ## Structure
 

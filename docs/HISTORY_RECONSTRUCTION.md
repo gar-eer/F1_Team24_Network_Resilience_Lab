@@ -26,3 +26,9 @@ at this milestone.
 Introduce a delay-based simulator with a fixed 64 KiB payload, 512 kbps limit,
 4 KiB chunks, command-line reporting, and a timing smoke test. This is an
 approximate recreation of the original concept, not recovered original source.
+
+## Configurable simulation milestone — 2 October 2026
+
+Add command-line payload size, bandwidth, and chunk size settings. Validate
+positive inputs and finite rates, retain monotonic transfer timing, and check
+custom rates and partial final chunks with automated tests.

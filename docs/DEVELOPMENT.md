@@ -14,7 +14,7 @@ python -m venv .venv
 ```
 
 Invoking the environment's Python directly does not require activating it.
-At this milestone, `main.py` runs a fixed 64 KiB simulation at 512 decimal kbps
+By default, `main.py` runs a 64 KiB simulation at 512 decimal kbps
 and prints the size and elapsed time. The simulator sleeps for each chunk's
 ideal transfer duration; it does not send bytes over a network. The theoretical
 duration is 1.024 seconds, with actual runtime increased by scheduling overhead.
@@ -25,8 +25,20 @@ Run the command-line smoke test with:
 python -m unittest discover -v
 ```
 
-The test checks the reported payload, bandwidth, and minimum duration. Real
+The tests check custom settings, invalid inputs, partial chunks, and minimum
+durations at different rates. Real
 socket integration tests belong to the later HTTP transfer milestones.
+
+Override defaults with `--size-bytes`, `--bandwidth-kbps`, and `--chunk-bytes`.
+Payload and chunk sizes must be positive integers, and bandwidth must be
+positive and finite. For example:
+
+```powershell
+python main.py --size-bytes 8193 --bandwidth-kbps 256 --chunk-bytes 4096
+```
+
+The final chunk contains only the remaining bytes. A monotonic clock measures
+actual elapsed time, including the sleep and loop overhead.
 
 ## Planned milestones
 

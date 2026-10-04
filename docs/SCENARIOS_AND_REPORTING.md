@@ -1,10 +1,19 @@
-# Scenario configuration and reporting groundwork
+# Scenario configuration and transfer reporting
 
 ## Status
 
-This document proposes inputs and result fields for the initial transfer
-simulator. It does not add a scenario loader or a reporting implementation.
-The examples are design fixtures, not measured experiment results.
+The simulator loads the bundled baseline and low-bandwidth presets and reports
+actual simulator timing as text or JSON. The preset inputs remain configuration
+fixtures, not measured experiment results. No real network traffic is generated.
+
+```powershell
+python main.py --scenario low-bandwidth --json
+```
+
+Explicit size and bandwidth options override preset values. Chunk size remains
+a separate command-line setting. Without `--scenario`, the identifier is
+`custom`. Presets are resolved relative to the application directory, so a
+different shell working directory does not change their location.
 
 ## Scenario inputs
 
@@ -25,25 +34,31 @@ For a 65,536-byte payload, the theoretical duration is 1.024 seconds at 512 kbps
 and 2.048 seconds at 256 kbps. These values are calculations, not observed
 measurements. A delay-based simulator will also include scheduling overhead.
 
-## Proposed result fields
+## Result fields
 
 | Field | Meaning |
 | --- | --- |
+| `mode` | `simulation`, to distinguish these results from network measurements |
 | `scenario_id` | Identifier of the selected scenario |
 | `payload_bytes` | Requested transfer size |
 | `bandwidth_kbps` | Configured bandwidth limit |
+| `chunk_bytes` | Maximum bytes accounted for in each simulation step |
 | `transferred_bytes` | Bytes accounted for by the simulator |
 | `elapsed_s` | Measured monotonic time from start to completion |
-| `status` | `completed` or `failed` |
-| `error` | Failure reason, or null on success |
+| `status` | `completed` for a finished simulation |
+| `error` | Null for a finished simulation; reserved for future failure reporting |
 
 Only a complete simulation should be marked completed. Simulated bytes must
 not be described as verified network delivery. Integrity, outages, retries,
 and server-confirmed progress require later networking milestones.
 
-## Planned implementation
+Invalid settings or unknown presets produce a command-line error with exit
+status 2 and no result on standard output. They are not counted as completed
+transfers. JSON output contains only the result, with no text banner.
 
-1. Add the initial fixed-default simulator.
-2. Introduce configurable payload and bandwidth settings with validation.
-3. Load named presets and report a result for the selected scenario.
-4. Extend the measurements when real HTTP transfers are introduced.
+## Implementation milestones
+
+1. Fixed-default simulator: implemented.
+2. Configurable payload and bandwidth settings with validation: implemented.
+3. Named presets and transfer reports: implemented.
+4. Real HTTP measurements: planned for later milestones.

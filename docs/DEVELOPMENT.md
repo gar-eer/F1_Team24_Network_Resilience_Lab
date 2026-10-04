@@ -40,6 +40,11 @@ python main.py --size-bytes 8193 --bandwidth-kbps 256 --chunk-bytes 4096
 The final chunk contains only the remaining bytes. A monotonic clock measures
 actual elapsed time, including the sleep and loop overhead.
 
+Select `--scenario baseline` or `--scenario low-bandwidth` to load a bundled
+preset. Explicit size and bandwidth options take precedence. Add `--json` for
+a structured result. The reporting tests cover preset selection, overrides,
+invalid names, and execution from another working directory.
+
 ## Planned milestones
 
 1. Implement the original bandwidth-limited transfer simulator.

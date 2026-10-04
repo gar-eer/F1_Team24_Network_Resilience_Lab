@@ -57,7 +57,25 @@ python main.py --help
 
 Sizes must be positive integers. Bandwidth must be a positive finite number in
 decimal kbps. The example has a theoretical duration of 4.096 seconds; actual
-runtime also includes scheduling overhead. Scenario presets are not loaded yet.
+runtime also includes scheduling overhead.
+
+## Scenario presets and results
+
+```powershell
+python main.py --scenario baseline
+python main.py --scenario low-bandwidth --json
+python main.py --scenario baseline --size-bytes 8193 --bandwidth-kbps 256
+```
+
+Presets are defined in [examples/scenarios.json](examples/scenarios.json).
+`baseline` uses 512 kbps and `low-bandwidth` uses 256 kbps; both use 64 KiB
+payloads. Explicit command-line settings override preset values. With no preset,
+the result's scenario identifier is `custom` and the usual defaults apply.
+
+Text output includes the scenario, transfer size, bandwidth, elapsed time, and
+completion status. `--json` prints only a structured result that can be saved
+with shell redirection. Invalid inputs exit with an error instead of producing
+a result. See [scenario and result definitions](docs/SCENARIOS_AND_REPORTING.md).
 
 ## Structure
 

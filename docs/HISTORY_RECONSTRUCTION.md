@@ -32,3 +32,9 @@ approximate recreation of the original concept, not recovered original source.
 Add command-line payload size, bandwidth, and chunk size settings. Validate
 positive inputs and finite rates, retain monotonic transfer timing, and check
 custom rates and partial final chunks with automated tests.
+
+## Scenario reporting milestone — 4 October 2026
+
+Assign this reconstructed milestone to Rini Vaishnavi: load named constant-rate
+presets, allow explicit setting overrides, and report simulation results as
+text or JSON. Cover preset selection and reporting with command-line tests.

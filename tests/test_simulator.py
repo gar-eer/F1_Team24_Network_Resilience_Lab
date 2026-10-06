@@ -37,7 +37,7 @@ class SimulatorTests(unittest.TestCase):
     def test_command_line_accepts_custom_settings_and_rejects_invalid_rate(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         completed = subprocess.run(
-            [sys.executable, str(root / 'main.py'), '--size-bytes', '1025',
+            [sys.executable, str(root / 'main.py'), '--simulate', '--size-bytes', '1025',
              '--bandwidth-kbps', '256', '--chunk-bytes', '512'],
             cwd=root, capture_output=True, text=True, timeout=10,
         )
@@ -53,7 +53,7 @@ class SimulatorTests(unittest.TestCase):
     def test_default_transfer_reports_size_and_obeys_bandwidth_limit(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         completed = subprocess.run(
-            [sys.executable, str(root / 'main.py')],
+            [sys.executable, str(root / 'main.py'), '--simulate'],
             cwd=root, capture_output=True, text=True, timeout=10,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)

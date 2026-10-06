@@ -14,10 +14,13 @@ python -m venv .venv
 ```
 
 Invoking the environment's Python directly does not require activating it.
-By default, `main.py` runs a 64 KiB simulation at 512 decimal kbps
-and prints the size and elapsed time. The simulator sleeps for each chunk's
-ideal transfer duration; it does not send bytes over a network. The theoretical
-duration is 1.024 seconds, with actual runtime increased by scheduling overhead.
+By default, `main.py` uploads 64 KiB over real localhost HTTP sockets to a
+temporary in-memory origin. The port is assigned automatically. At this stage,
+HTTP uploads are unpaced; the configured bandwidth is recorded but not applied.
+Payload size is limited to 32 MiB for HTTP uploads.
+
+Use `--simulate` for the earlier delay-based transfer runner. Its default
+theoretical duration is 1.024 seconds, plus scheduling overhead.
 
 Run the command-line smoke test with:
 
@@ -26,8 +29,9 @@ python -m unittest discover -v
 ```
 
 The tests check custom settings, invalid inputs, partial chunks, and minimum
-durations at different rates. Real
-socket integration tests belong to the later HTTP transfer milestones.
+durations at different rates. HTTP tests check exact received payload bytes,
+partial final write chunks, endpoint rejection, and the default command's report.
+The suite requires permission to open localhost sockets.
 
 Override defaults with `--size-bytes`, `--bandwidth-kbps`, and `--chunk-bytes`.
 Payload and chunk sizes must be positive integers, and bandwidth must be
@@ -38,7 +42,9 @@ python main.py --size-bytes 8193 --bandwidth-kbps 256 --chunk-bytes 4096
 ```
 
 The final chunk contains only the remaining bytes. A monotonic clock measures
-actual elapsed time, including the sleep and loop overhead.
+actual elapsed time. HTTP timing includes connection establishment, body writes,
+and the origin acknowledgement; origin startup and final cleanup are excluded.
+Simulation timing includes sleeps and loop overhead.
 
 Select `--scenario baseline` or `--scenario low-bandwidth` to load a bundled
 preset. Explicit size and bandwidth options take precedence. Add `--json` for
@@ -49,7 +55,7 @@ invalid names, and execution from another working directory.
 
 1. Implement the original bandwidth-limited transfer simulator.
 2. Add configurable scenarios, timing, and result reporting.
-3. Introduce actual HTTP uploads through a local disruption proxy.
+3. Add a paced disruption proxy to the implemented HTTP upload engine.
 4. Add retry, resumable transfer, integrity checks, and recovery metrics.
 5. Validate networking behavior and document reproducible experiments.
 6. Build the frontend and result visualizations.

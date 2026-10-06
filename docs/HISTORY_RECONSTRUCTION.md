@@ -38,3 +38,10 @@ custom rates and partial final chunks with automated tests.
 Assign this reconstructed milestone to Rini Vaishnavi: load named constant-rate
 presets, allow explicit setting overrides, and report simulation results as
 text or JSON. Cover preset selection and reporting with command-line tests.
+
+## HTTP upload milestone — 6 October 2026
+
+Assign this reconstructed milestone to Sreerag Aneesh: make real localhost HTTP
+uploads the default, acknowledge complete bodies at an in-memory origin, and
+measure actual upload timing. Retain explicit simulation mode for the earlier
+behavior. Report unpaced HTTP bandwidth honestly; proxy pacing follows later.

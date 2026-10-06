@@ -13,7 +13,7 @@ class ReportingTests(unittest.TestCase):
     def run_cli(self, *arguments):
         # Presets must be found relative to the application, not the caller.
         return subprocess.run(
-            [sys.executable, str(ROOT / 'main.py'), *arguments],
+            [sys.executable, str(ROOT / 'main.py'), '--simulate', *arguments],
             cwd=ROOT / 'docs', capture_output=True, text=True, timeout=10,
         )
 

@@ -2,6 +2,7 @@
 import argparse
 import asyncio
 import json
+import math
 
 from bandwidth_throttle_tester.config import SCENARIOS
 from bandwidth_throttle_tester.throttler import (
@@ -24,6 +25,8 @@ def main():
                         help='Positive decimal kilobits per second (default: 512)')
     parser.add_argument('--chunk-bytes', type=int, default=CHUNK_BYTES,
                         help='Positive write chunk size (default: 4096)')
+    parser.add_argument('--timeout-s', type=float, default=120,
+                        help='HTTP upload deadline in seconds (default: 120)')
     args = parser.parse_args()
     preset = SCENARIOS.get(args.scenario, {})
     payload_bytes = (args.size_bytes if args.size_bytes is not None
@@ -32,18 +35,24 @@ def main():
                       else preset.get('bandwidth_kbps', BANDWIDTH_KBPS))
     try:
         validate_settings(payload_bytes, bandwidth_kbps, args.chunk_bytes)
+        if not math.isfinite(args.timeout_s) or args.timeout_s <= 0:
+            raise ValueError('timeout_s must be a positive finite number')
         if args.simulate:
             transferred, elapsed = simulate_transfer(
                 payload_bytes, bandwidth_kbps, args.chunk_bytes,
             )
         else:
-            upload = asyncio.run(run_upload(payload_bytes, args.chunk_bytes))
+            upload = asyncio.run(run_upload(
+                payload_bytes, args.chunk_bytes, bandwidth_kbps, args.timeout_s,
+            ))
             transferred, elapsed = upload['transferred_bytes'], upload['elapsed_s']
     except ValueError as error:
         parser.error(str(error))
+    except (OSError, TimeoutError, asyncio.IncompleteReadError) as error:
+        parser.exit(1, f'Upload failed: {str(error) or "deadline exceeded"}\n')
     result = {
         'mode': 'simulation' if args.simulate else 'http',
-        'bandwidth_applied': args.simulate,
+        'bandwidth_applied': True,
         'scenario_id': args.scenario or 'custom',
         'payload_bytes': payload_bytes,
         'bandwidth_kbps': bandwidth_kbps,
@@ -53,19 +62,24 @@ def main():
         'status': 'completed',
         'error': None,
     }
+    if not args.simulate:
+        result.update(
+            proxy_ingress_bytes=upload['proxy_ingress_bytes'],
+            forwarded_bytes=upload['forwarded_bytes'], timeout_s=args.timeout_s,
+        )
     if args.json:
         print(json.dumps(result, indent=2, allow_nan=False))
     else:
         if args.simulate:
             print('Simulation only: no network traffic is generated.')
         else:
-            print('Localhost HTTP upload: bandwidth pacing is not yet applied.')
+            print('Localhost HTTP upload through a bandwidth-limited proxy.')
         print(f'Scenario: {result["scenario_id"]}')
         if args.simulate:
             print(f'Transferred: {transferred} bytes at {bandwidth_kbps:g} kbps')
         else:
             print(f'Transferred: {transferred} bytes (origin acknowledged)')
-            print(f'Configured bandwidth: {bandwidth_kbps:g} kbps (not applied)')
+            print(f'Proxy body bandwidth: {bandwidth_kbps:g} kbps')
         print(f'Elapsed: {elapsed:.3f} s')
         print(f'Status: {result["status"]}')
 

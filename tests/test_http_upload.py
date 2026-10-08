@@ -41,7 +41,7 @@ class HttpUploadTests(unittest.IsolatedAsyncioTestCase):
 
 
 class HttpCommandTests(unittest.TestCase):
-    def test_default_mode_reports_actual_unpaced_http_upload(self):
+    def test_default_mode_reports_actual_paced_http_upload(self):
         root = Path(__file__).resolve().parents[1]
         completed = subprocess.run(
             [sys.executable, str(root / 'main.py'), '--size-bytes', '8193', '--json'],
@@ -53,7 +53,9 @@ class HttpCommandTests(unittest.TestCase):
         self.assertEqual(result['payload_bytes'], 8193)
         self.assertEqual(result['transferred_bytes'], 8193)
         self.assertEqual(result['status'], 'completed')
-        self.assertFalse(result['bandwidth_applied'])
+        self.assertTrue(result['bandwidth_applied'])
+        self.assertEqual(result['forwarded_bytes'], 8193)
+        self.assertGreaterEqual(result['elapsed_s'], 8193 * 8 / 512000)
 
 
 if __name__ == '__main__':

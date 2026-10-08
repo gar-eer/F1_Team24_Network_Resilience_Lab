@@ -45,3 +45,14 @@ Assign this reconstructed milestone to Sreerag Aneesh: make real localhost HTTP
 uploads the default, acknowledge complete bodies at an in-memory origin, and
 measure actual upload timing. Retain explicit simulation mode for the earlier
 behavior. Report unpaced HTTP bandwidth honestly; proxy pacing follows later.
+
+## Bandwidth proxy milestone — 8 October 2026
+
+Assign this reconstructed milestone to Sreerag Aneesh: route uploads through a
+body-paced proxy, share the allowance across connections, report proxy body
+counters, and enforce an upload deadline with connection cleanup. Scheduled
+outages and restoration follow in the next development milestone.
+
+Completed feature branches are integrated into `main` using local milestone
+merge commits. These merge commits are additional to the numbered development
+commits. They do not represent GitHub PRs, approvals, or reviews.

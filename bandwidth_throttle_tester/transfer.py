@@ -1,7 +1,10 @@
-"""Real localhost HTTP uploads; pacing and disruption are later milestones."""
+"""Real localhost HTTP origin and upload clients."""
 import asyncio
 import json
+import math
 import time
+
+from .throttler import BANDWIDTH_KBPS, validate_settings
 
 
 MAX_PAYLOAD_BYTES = 32 * 1024 * 1024
@@ -17,8 +20,9 @@ async def read_headers(reader):
 class UploadOrigin:
     """Accept one full upload into memory and acknowledge its received size."""
 
-    def __init__(self):
+    def __init__(self, timeout_s=120):
         self.received = b''
+        self.timeout_s = timeout_s
 
     async def handle(self, reader, writer):
         try:
@@ -26,7 +30,7 @@ class UploadOrigin:
             length = int(fields.get('content-length', '-1'))
             if request != 'POST /upload HTTP/1.1' or not 0 < length <= MAX_PAYLOAD_BYTES:
                 raise ValueError('Invalid upload request')
-            body = await asyncio.wait_for(reader.readexactly(length), 5)
+            body = await asyncio.wait_for(reader.readexactly(length), self.timeout_s)
             self.received = body
             status, value = '200 OK', {'received_bytes': len(body)}
         except (ValueError, UnicodeError, asyncio.IncompleteReadError,
@@ -85,13 +89,34 @@ async def upload_to_origin(payload, port, chunk_bytes=4096):
             pass
 
 
-async def run_upload(payload_bytes, chunk_bytes=4096):
-    """Start a private origin on an assigned loopback port for one upload."""
+async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_KBPS,
+                     timeout_s=120):
+    """Route one upload through a paced proxy and private loopback origin."""
+    from .proxy import BandwidthProxy
+
+    validate_settings(payload_bytes, bandwidth_kbps, chunk_bytes)
+    if (isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float))
+            or not math.isfinite(timeout_s) or timeout_s <= 0):
+        raise ValueError('timeout_s must be a positive finite number')
     if type(payload_bytes) is not int or not 0 < payload_bytes <= MAX_PAYLOAD_BYTES:
         raise ValueError('HTTP payload size must be between 1 byte and 32 MiB')
     payload = (bytes(range(256)) * ((payload_bytes + 255) // 256))[:payload_bytes]
-    origin = UploadOrigin()
+    origin = UploadOrigin(timeout_s)
     server = await asyncio.start_server(origin.handle, '127.0.0.1', 0)
     async with server:
-        port = server.sockets[0].getsockname()[1]
-        return await asyncio.wait_for(upload_to_origin(payload, port, chunk_bytes), 10)
+        origin_port = server.sockets[0].getsockname()[1]
+        proxy = BandwidthProxy(origin_port, bandwidth_kbps, timeout_s)
+        proxy_server = await asyncio.start_server(proxy.handle, '127.0.0.1', 0)
+        async with proxy_server:
+            try:
+                port = proxy_server.sockets[0].getsockname()[1]
+                result = await asyncio.wait_for(
+                    upload_to_origin(payload, port, chunk_bytes), timeout_s,
+                )
+                result['proxy_ingress_bytes'] = proxy.ingress_bytes
+                result['forwarded_bytes'] = proxy.forwarded_bytes
+                return result
+            finally:
+                # Close active connections before the server context waits
+                # for them; otherwise a paced transfer can outlive its deadline.
+                await proxy.close()

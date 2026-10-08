@@ -15,9 +15,9 @@ python -m venv .venv
 
 Invoking the environment's Python directly does not require activating it.
 By default, `main.py` uploads 64 KiB over real localhost HTTP sockets to a
-temporary in-memory origin. The port is assigned automatically. At this stage,
-HTTP uploads are unpaced; the configured bandwidth is recorded but not applied.
-Payload size is limited to 32 MiB for HTTP uploads.
+temporary in-memory origin through a paced proxy. Both ports are assigned
+automatically. The configured bandwidth limits proxy body forwarding across all
+connections sharing that proxy. Payload size is limited to 32 MiB for HTTP uploads.
 
 Use `--simulate` for the earlier delay-based transfer runner. Its default
 theoretical duration is 1.024 seconds, plus scheduling overhead.
@@ -31,7 +31,9 @@ python -m unittest discover -v
 The tests check custom settings, invalid inputs, partial chunks, and minimum
 durations at different rates. HTTP tests check exact received payload bytes,
 partial final write chunks, endpoint rejection, and the default command's report.
-The suite requires permission to open localhost sockets.
+Proxy tests also compare measured durations at different rates, check a shared
+limit across concurrent connections, and verify that a deadline stops a slow
+transfer promptly. The suite requires permission to open localhost sockets.
 
 Override defaults with `--size-bytes`, `--bandwidth-kbps`, and `--chunk-bytes`.
 Payload and chunk sizes must be positive integers, and bandwidth must be
@@ -46,6 +48,17 @@ actual elapsed time. HTTP timing includes connection establishment, body writes,
 and the origin acknowledgement; origin startup and final cleanup are excluded.
 Simulation timing includes sleeps and loop overhead.
 
+The proxy reads body slices of up to 4 KiB, then sleeps for each slice's ideal
+duration while holding a shared lock before forwarding it. There is no initial
+free burst. Scheduling overhead can reduce achieved throughput. HTTP headers
+and origin responses bypass this pacing. Byte counters describe application
+bodies at proxy ingress and forwarding, not transport overhead.
+
+`--timeout-s` sets the HTTP deadline (default 120 seconds). Active proxy handlers
+are cancelled before server shutdown waits for their connections. A deadline
+failure exits with status 1 without a completed result; invalid input exits with
+status 2. This deadline does not apply to `--simulate`.
+
 Select `--scenario baseline` or `--scenario low-bandwidth` to load a bundled
 preset. Explicit size and bandwidth options take precedence. Add `--json` for
 a structured result. The reporting tests cover preset selection, overrides,
@@ -55,7 +68,7 @@ invalid names, and execution from another working directory.
 
 1. Implement the original bandwidth-limited transfer simulator.
 2. Add configurable scenarios, timing, and result reporting.
-3. Add a paced disruption proxy to the implemented HTTP upload engine.
+3. Add scheduled outages and restoration to the implemented paced HTTP proxy.
 4. Add retry, resumable transfer, integrity checks, and recovery metrics.
 5. Validate networking behavior and document reproducible experiments.
 6. Build the frontend and result visualizations.

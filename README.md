@@ -11,18 +11,21 @@ A Python project for exploring how bandwidth limits affect data transfers.
 - Add a web dashboard after the networking and measurements are established.
 
 The initial simulator and real localhost HTTP upload engine are implemented.
-Proxy pacing, disruptions, recovery strategies, and the dashboard will follow.
+Bandwidth pacing is implemented. Disruptions, recovery strategies, and the
+dashboard will follow.
 
 ## Development status
 
-The default command uploads a deterministic payload to a temporary HTTP origin
-on `127.0.0.1`, using real TCP sockets. It reports the origin-acknowledged byte
-count and elapsed upload time. The origin uses an automatically assigned port
-and stores the body in memory. HTTP payloads are limited to 32 MiB.
+The default command uploads a deterministic payload through a bandwidth-limited
+proxy to a temporary HTTP origin. Both bind to `127.0.0.1` on automatically
+assigned ports and use real TCP sockets. The origin stores the body in memory.
+HTTP payloads are limited to 32 MiB.
 
-HTTP bandwidth pacing is not implemented yet. The configured bandwidth is
-reported as metadata with `bandwidth_applied: false`. The earlier delay-based
-simulator remains available with `--simulate` and applies the configured timing.
+The proxy paces upload bodies in slices of up to 4 KiB using one shared allowance
+across connections. Headers and responses are not rate-limited. Reports include
+proxy ingress, forwarded body bytes, origin-acknowledged bytes, and elapsed time.
+This measures application body delivery, not TCP wire traffic or packet loss.
+The earlier delay-based simulator remains available with `--simulate`.
 
 ## Requirements
 
@@ -49,8 +52,9 @@ python -m unittest discover -v
 ```
 
 The tests check custom settings, partial chunks, invalid input, command-line
-output, minimum simulated durations, exact received HTTP bodies, and rejection
-of unsupported upload endpoints. Tests require permission to open local sockets.
+output, exact received HTTP bodies, rate-dependent upload timing, aggregate
+pacing across concurrent connections, and deadline cleanup. Tests require
+permission to open local sockets.
 
 ## Configure a transfer
 
@@ -62,7 +66,11 @@ python main.py --help
 
 Sizes must be positive integers. Bandwidth must be a positive finite number in
 decimal kbps. The simulation example has a theoretical duration of 4.096 seconds
-plus scheduling overhead. The HTTP command currently runs without pacing.
+plus scheduling overhead. The paced HTTP upload includes socket, forwarding,
+and acknowledgement overhead as well. The default HTTP deadline is 120 seconds;
+use `--timeout-s` to change it. It must be a positive finite number and applies
+to the upload, excluding service setup and cleanup. Deadline failures exit with
+status 1; invalid settings exit with status 2.
 
 ## Scenario presets and results
 
@@ -74,7 +82,7 @@ python main.py --scenario baseline --size-bytes 8193 --bandwidth-kbps 256
 
 Presets are defined in [examples/scenarios.json](examples/scenarios.json).
 `baseline` uses 512 kbps and `low-bandwidth` uses 256 kbps; both use 64 KiB
-payloads. Rates affect timing only in simulation mode at this milestone.
+payloads. Rates affect simulation timing and real proxy body forwarding.
 Explicit command-line settings override preset values. With no preset,
 the result's scenario identifier is `custom` and the usual defaults apply.
 

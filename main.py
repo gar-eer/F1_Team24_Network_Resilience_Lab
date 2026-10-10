@@ -4,7 +4,7 @@ import asyncio
 import json
 import math
 
-from bandwidth_throttle_tester.config import SCENARIOS
+from bandwidth_throttle_tester.config import SCENARIOS, build_phases
 from bandwidth_throttle_tester.throttler import (
     BANDWIDTH_KBPS, CHUNK_BYTES, PAYLOAD_BYTES, simulate_transfer, validate_settings,
 )
@@ -27,6 +27,10 @@ def main():
                         help='Positive write chunk size (default: 4096)')
     parser.add_argument('--timeout-s', type=float, default=120,
                         help='HTTP upload deadline in seconds (default: 120)')
+    parser.add_argument('--outage-at-s', type=float,
+                        help='Seconds after trial start to disconnect the proxy')
+    parser.add_argument('--outage-duration-s', type=float,
+                        help='Positive outage duration in seconds')
     args = parser.parse_args()
     preset = SCENARIOS.get(args.scenario, {})
     payload_bytes = (args.size_bytes if args.size_bytes is not None
@@ -37,13 +41,21 @@ def main():
         validate_settings(payload_bytes, bandwidth_kbps, args.chunk_bytes)
         if not math.isfinite(args.timeout_s) or args.timeout_s <= 0:
             raise ValueError('timeout_s must be a positive finite number')
+        phases = build_phases(
+            bandwidth_kbps,
+            args.outage_at_s if args.outage_at_s is not None else preset.get('outage_at_s'),
+            args.outage_duration_s if args.outage_duration_s is not None
+            else preset.get('outage_duration_s'),
+        )
+        if args.simulate and (len(phases) > 1 or phases[0]['kbps'] == 0):
+            raise ValueError('Outage schedules require HTTP mode')
         if args.simulate:
             transferred, elapsed = simulate_transfer(
                 payload_bytes, bandwidth_kbps, args.chunk_bytes,
             )
         else:
             upload = asyncio.run(run_upload(
-                payload_bytes, args.chunk_bytes, bandwidth_kbps, args.timeout_s,
+                payload_bytes, args.chunk_bytes, bandwidth_kbps, args.timeout_s, phases,
             ))
             transferred, elapsed = upload['transferred_bytes'], upload['elapsed_s']
     except ValueError as error:
@@ -66,6 +78,8 @@ def main():
         result.update(
             proxy_ingress_bytes=upload['proxy_ingress_bytes'],
             forwarded_bytes=upload['forwarded_bytes'], timeout_s=args.timeout_s,
+            phases=upload['phases'], events=upload['events'],
+            status=upload['status'], error=upload['error'],
         )
     if args.json:
         print(json.dumps(result, indent=2, allow_nan=False))
@@ -82,7 +96,10 @@ def main():
             print(f'Proxy body bandwidth: {bandwidth_kbps:g} kbps')
         print(f'Elapsed: {elapsed:.3f} s')
         print(f'Status: {result["status"]}')
+        if result['error']:
+            print(f'Error: {result["error"]}')
+    return 0 if result['status'] == 'completed' else 1
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

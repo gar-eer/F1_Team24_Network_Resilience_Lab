@@ -48,8 +48,9 @@ class ProxyTests(unittest.IsolatedAsyncioTestCase):
         from bandwidth_throttle_tester.transfer import run_upload
 
         started = time.perf_counter()
-        with self.assertRaises(TimeoutError):
-            await run_upload(65536, bandwidth_kbps=1, timeout_s=0.1)
+        result = await run_upload(65536, bandwidth_kbps=1, timeout_s=0.1)
+        self.assertEqual(result['status'], 'failed')
+        self.assertEqual(result['error'], 'Upload deadline exceeded')
         self.assertLess(time.perf_counter() - started, 2)
 
 

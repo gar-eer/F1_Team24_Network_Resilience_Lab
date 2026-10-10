@@ -90,7 +90,7 @@ async def upload_to_origin(payload, port, chunk_bytes=4096):
 
 
 async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_KBPS,
-                     timeout_s=120):
+                     timeout_s=120, phases=None):
     """Route one upload through a paced proxy and private loopback origin."""
     from .proxy import BandwidthProxy
 
@@ -105,16 +105,30 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
     server = await asyncio.start_server(origin.handle, '127.0.0.1', 0)
     async with server:
         origin_port = server.sockets[0].getsockname()[1]
-        proxy = BandwidthProxy(origin_port, bandwidth_kbps, timeout_s)
+        proxy = BandwidthProxy(origin_port, bandwidth_kbps, timeout_s, phases)
         proxy_server = await asyncio.start_server(proxy.handle, '127.0.0.1', 0)
         async with proxy_server:
             try:
+                await proxy.start()
                 port = proxy_server.sockets[0].getsockname()[1]
-                result = await asyncio.wait_for(
-                    upload_to_origin(payload, port, chunk_bytes), timeout_s,
-                )
+                started = time.perf_counter()
+                try:
+                    result = await asyncio.wait_for(
+                        upload_to_origin(payload, port, chunk_bytes), timeout_s,
+                    )
+                    result.update(status='completed', error=None)
+                except (OSError, TimeoutError, ValueError, asyncio.IncompleteReadError) as error:
+                    result = {
+                        'transferred_bytes': 0,
+                        'elapsed_s': time.perf_counter() - started,
+                        'status': 'failed',
+                        'error': ('Upload deadline exceeded' if isinstance(error, TimeoutError)
+                                  else str(error) or type(error).__name__),
+                    }
                 result['proxy_ingress_bytes'] = proxy.ingress_bytes
                 result['forwarded_bytes'] = proxy.forwarded_bytes
+                result['phases'] = proxy.phases
+                result['events'] = list(proxy.events)
                 return result
             finally:
                 # Close active connections before the server context waits

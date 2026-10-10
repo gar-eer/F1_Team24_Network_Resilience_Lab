@@ -11,6 +11,14 @@
       "description": "Repeat the same transfer at half the baseline bandwidth",
       "payload_bytes": 65536,
       "bandwidth_kbps": 256
+    },
+    {
+      "id": "outage",
+      "description": "Disconnect during an upload, then restore the configured rate",
+      "payload_bytes": 65536,
+      "bandwidth_kbps": 256,
+      "outage_at_s": 0.25,
+      "outage_duration_s": 1.0
     }
   ]
 }

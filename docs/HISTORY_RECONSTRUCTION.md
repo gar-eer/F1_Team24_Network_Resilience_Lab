@@ -56,3 +56,11 @@ outages and restoration follow in the next development milestone.
 Completed feature branches are integrated into `main` using local milestone
 merge commits. These merge commits are additional to the numbered development
 commits. They do not represent GitHub PRs, approvals, or reviews.
+
+## Outage milestone — 10 October 2026
+
+Assign this reconstructed milestone to Sreerag Aneesh: validate absolute phase
+schedules, interrupt active connections on outage, reject offline attempts, and
+accept new connections after restoration. Add the outage preset, explicit CLI
+outage settings, observed phase events, and failed-transfer reports. Automatic
+retry and upload resumption remain separate future milestones.

@@ -56,7 +56,7 @@ bodies at proxy ingress and forwarding, not transport overhead.
 
 `--timeout-s` sets the HTTP deadline (default 120 seconds). Active proxy handlers
 are cancelled before server shutdown waits for their connections. A deadline
-failure exits with status 1 without a completed result; invalid input exits with
+failure produces a failed result and exits with status 1; invalid input exits with
 status 2. This deadline does not apply to `--simulate`.
 
 Select `--scenario baseline` or `--scenario low-bandwidth` to load a bundled
@@ -64,11 +64,31 @@ preset. Explicit size and bandwidth options take precedence. Add `--json` for
 a structured result. The reporting tests cover preset selection, overrides,
 invalid names, and execution from another working directory.
 
+## Scheduled outages
+
+The `outage` preset builds phases at 0 seconds (256 kbps), 0.25 seconds
+(offline), and 1.25 seconds (256 kbps). Alternatively, provide both
+`--outage-at-s` and `--outage-duration-s` with a nonnegative start and a positive
+duration. Outages are supported in HTTP mode only.
+
+One proxy monitor uses absolute monotonic times for the entire trial. An offline
+phase aborts both sides of active proxy connections and cancels forwarding
+handlers. Incoming connections are rejected until an online phase is applied.
+Restoration starts no client attempts by itself. The current single-attempt
+runner records failure and ends the trial immediately; retry behavior follows
+in a later milestone.
+
+Failed results retain observed events and application body counters. The origin
+commits a full request only after reading its entire body. No incomplete body is
+treated as an acknowledged upload. Tests keep a proxy alive across an outage to
+check that it rejects offline attempts and accepts fresh uploads on restoration.
+Cleanup closes connections and removes cancelled tasks from the handler set.
+
 ## Planned milestones
 
 1. Implement the original bandwidth-limited transfer simulator.
 2. Add configurable scenarios, timing, and result reporting.
-3. Add scheduled outages and restoration to the implemented paced HTTP proxy.
+3. Scheduled outages and restoration: implemented.
 4. Add retry, resumable transfer, integrity checks, and recovery metrics.
 5. Validate networking behavior and document reproducible experiments.
 6. Build the frontend and result visualizations.

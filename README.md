@@ -45,6 +45,10 @@ python -m venv .venv
 The HTTP origin exists only for the command's duration. There is no dashboard
 or internet dependency. See the [development guide](docs/DEVELOPMENT.md).
 
+For repeatable scenario comparisons, follow the
+[experiment guide](docs/EXPERIMENTS.md) and use the
+[report template](docs/EXPERIMENT_REPORT_TEMPLATE.md).
+
 ## Validation
 
 ```powershell

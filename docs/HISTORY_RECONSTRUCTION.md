@@ -64,3 +64,11 @@ schedules, interrupt active connections on outage, reject offline attempts, and
 accept new connections after restoration. Add the outage preset, explicit CLI
 outage settings, observed phase events, and failed-transfer reports. Automatic
 retry and upload resumption remain separate future milestones.
+
+## Experiment documentation milestone — 11 October 2026
+
+Assign this reconstructed milestone to Rini Vaishnavi: document a repeatable
+baseline, low-bandwidth, and outage comparison, JSON capture commands, expected
+exit codes, and an experiment report template. Distinguish observed measurements
+and actual data collection dates from hypothetical timings and historical
+milestone dates. No application behavior changes at this milestone.

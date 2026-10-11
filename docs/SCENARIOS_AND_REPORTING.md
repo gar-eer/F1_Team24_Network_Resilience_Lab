@@ -1,5 +1,8 @@
 # Scenario configuration and transfer reporting
 
+For collection commands and a consistent report format, see the
+[experiment guide](EXPERIMENTS.md) and [report template](EXPERIMENT_REPORT_TEMPLATE.md).
+
 ## Status
 
 The command loads bundled presets and reports transfer results as text or JSON.

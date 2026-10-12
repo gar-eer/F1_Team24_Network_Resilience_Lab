@@ -17,7 +17,8 @@ do not treat this document as evidence of an executed experiment.
 | Operating system | [system and version] |
 | Relevant background load | [observations] |
 | Execution mode | [HTTP or simulation; report separately] |
-| Client strategy | [single attempt at this milestone] |
+| Client strategy | [Basic or Retry; report separately] |
+| Retry budget | [effective max_retries from the result] |
 | Planned trials per scenario | [count] |
 
 Historical milestone dates in the reconstructed Git history are not evidence
@@ -31,7 +32,9 @@ deadline, and absolute phase schedules. Describe any changes from the presets.]
 ## Individual trials
 
 Keep one row per valid finished trial. Use the exact JSON field definitions.
-Add rows as needed and retain failures. Link the raw JSON for each row.
+Add rows as needed and retain failures. Record the strategy, attempt_count, and
+retry_count for each trial in its notes or additional columns. Link the raw JSON
+for each row.
 
 | Run ID | Scenario | Outcome | Elapsed (s) | Payload (bytes) | Acknowledged (bytes) | Proxy ingress (bytes) | Forwarded (bytes) | Exit code | Raw JSON |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -46,9 +49,9 @@ with reasons; do not silently discard them.]
 
 ## Comparison
 
-| Scenario | Valid trials | Completed | Failed | Completion fraction | Completed duration range (s) | Failed duration range (s) |
+| Scenario and strategy | Valid trials | Completed | Failed | Completion fraction | Completed duration range (s) | Failed duration range (s) |
 | --- | --- | --- | --- | --- | --- | --- |
-| [scenario] | [count] | [count] | [count] | [completed / valid trials] | [observed range or unavailable] | [observed range or unavailable] |
+| [scenario / strategy] | [count] | [count] | [count] | [completed / valid trials] | [observed range or unavailable] | [observed range or unavailable] |
 
 [Describe differences supported by the recorded trials. Keep failed time to
 interruption separate from completed upload time. State which outcome was
@@ -57,7 +60,7 @@ expected and whether the evidence matched it.]
 ## Limits and conclusion
 
 [Explain what the measurements answer and what remains unmeasured. At this
-milestone, hash integrity, TCP retransmissions, wire overhead, automatic retry,
+milestone, hash integrity, TCP retransmissions, wire overhead,
 and resumable recovery are unavailable. Avoid general reliability claims from a
 small set of local trials.]
 

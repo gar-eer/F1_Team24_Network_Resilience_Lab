@@ -12,7 +12,8 @@ A Python project for exploring how bandwidth limits affect data transfers.
 
 The initial simulator and real localhost HTTP upload engine are implemented.
 Bandwidth pacing, scheduled outages, and connection restoration are implemented.
-Retry strategies, resumable uploads, and the dashboard will follow.
+Basic and full-file Retry strategies are available. Resumable uploads, hash
+verification, and the dashboard will follow.
 
 ## Development status
 
@@ -58,7 +59,8 @@ python -m unittest discover -v
 The tests check custom settings, partial chunks, invalid input, command-line
 output, exact received HTTP bodies, rate-dependent upload timing, aggregate
 pacing across concurrent connections, outage interruption, restoration, and
-deadline cleanup. Tests require permission to open local sockets.
+deadline cleanup, full-file retries, and retry budgets. Tests require permission
+to open local sockets.
 
 ## Configure a transfer
 
@@ -92,10 +94,28 @@ Explicit command-line settings override preset values. With no preset,
 the result's scenario identifier is `custom` and the usual defaults apply.
 
 The `outage` preset uses 64 KiB at 256 kbps, disconnects at 0.25 seconds, and
-schedules restoration at 1.25 seconds. The current single-attempt client fails
-on interruption and ends its trial immediately. It does not wait for restoration
-or retry. A running proxy accepts fresh connections after restoration; automatic
-client recovery belongs to a later milestone.
+schedules restoration at 1.25 seconds. Basic is the default strategy: it fails
+on interruption and ends its trial immediately. Retry can keep the same trial
+alive and send the full body again after restoration.
+
+## Upload strategies
+
+```powershell
+python main.py --scenario outage --strategy basic --json
+python main.py --scenario outage --strategy retry --max-retries 5 --json
+```
+
+- **Basic:** one full-file attempt; no automatic retry.
+- **Retry:** resend the identical full file from byte zero after a failure.
+  Backoff is 0.25, 0.5, 1, then 2 seconds, capped at 2 seconds thereafter.
+  `--max-retries` is the total number of additional attempts allowed per trial;
+  zero permits only the initial attempt. The default budget is five retries.
+
+Retry attempts use the original absolute outage schedule and shared proxy
+allowance. The deadline covers all attempts and backoff, not each attempt
+separately. Retry count increases only when another attempt actually begins.
+Reports include strategy, attempts, retry count, budget, and retry events.
+Retry is available only in HTTP mode. It does not preserve partial upload data.
 
 Configure an outage directly with:
 
@@ -114,7 +134,7 @@ with shell redirection. Invalid inputs exit with an error instead of producing
 a result. See [scenario and result definitions](docs/SCENARIOS_AND_REPORTING.md).
 Interrupted uploads and deadline failures produce a failed result, including
 observed events and byte counters, and exit with status 1. Completed uploads exit
-with status 0. A failed trial stops its schedule, so future restoration events
+with status 0. A terminally failed trial stops its schedule, so future restoration events
 are not reported as observed.
 
 ## Structure

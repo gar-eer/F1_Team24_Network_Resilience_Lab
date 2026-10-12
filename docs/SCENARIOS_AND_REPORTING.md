@@ -54,6 +54,10 @@ Paced HTTP uploads also include connection and acknowledgement overhead.
 | `mode` | `http` for real uploads, or `simulation` for delay-based accounting |
 | `bandwidth_applied` | True: real proxy pacing in HTTP mode, simulated timing otherwise |
 | `scenario_id` | Identifier of the selected scenario |
+| `strategy` | HTTP-only `basic` (default) or full-file `retry` |
+| `attempt_count` | HTTP-only total upload attempts actually started |
+| `retry_count` | HTTP-only additional attempts started after a failure and backoff |
+| `max_retries` | Effective retry budget; zero for Basic, configured budget for Retry |
 | `payload_bytes` | Requested transfer size |
 | `bandwidth_kbps` | Configured bandwidth limit |
 | `chunk_bytes` | Maximum application body write size, or simulation step size |
@@ -69,8 +73,8 @@ Paced HTTP uploads also include connection and acknowledgement overhead.
 
 HTTP acknowledgement confirms receipt of the full body by the local origin.
 It does not establish hash integrity, durable disk storage, or wire overhead.
-Simulation counts do not establish network delivery. Hash integrity checks,
-retries, and resumable progress belong to later milestones. An interrupted
+Simulation counts do not establish network delivery. Hash integrity checks
+and resumable progress belong to later milestones. An interrupted
 full-file request receives no acknowledgement, so `transferred_bytes` remains
 zero even when the proxy has forwarded part of its body.
 
@@ -79,8 +83,9 @@ status 2 and no result on standard output. They are not counted as completed
 transfers. JSON output contains only the result, with no text banner.
 HTTP deadlines or connection failures produce a failed result and exit with
 status 1. A failed result retains byte counters and phase events observed before
-termination. The single-attempt client ends immediately on failure, so scheduled
-restoration after that point is unobserved and its monitor is stopped.
+termination. Basic ends immediately on failure. Retry starts fresh full-body
+attempts after exponential backoff until completion, budget exhaustion, or the
+trial deadline. Terminal failure stops the monitor; later phases are unobserved.
 
 Phase times must begin at zero and strictly increase. Times and rates must be
 finite and nonnegative. The command builds a single-outage schedule from
@@ -88,6 +93,18 @@ finite and nonnegative. The command builds a single-outage schedule from
 The delay-based simulator rejects outage schedules instead of silently ignoring
 them. Phase event kinds are `started`, `outage`, `restored`, and `rate_changed`.
 Event `scheduled_at` is the configured phase time; `at` is when it was applied.
+
+Client event kinds are `upload_attempt`, `attempt_failed`, and `retry_scheduled`.
+An attempt event includes its one-based number. A scheduled retry includes the
+backoff duration (`delay_s`) and next attempt number. Scheduled retries do not
+count as started until their attempt event occurs. Phase events alone include
+`scheduled_at`; client event `at` uses the same monotonic trial clock.
+
+Retry backoff is 0.25, 0.5, 1, then 2 seconds, capped at 2 seconds. The retry
+budget is global to a trial; it does not reset on restoration or reconnect.
+All attempts send the same full body from byte zero. Successful Retry
+`elapsed_s` includes earlier failed attempts and backoff, and proxy byte counters
+include partial and repeated bodies across those attempts.
 
 ## Implementation milestones
 
@@ -97,3 +114,4 @@ Event `scheduled_at` is the configured phase time; `at` is when it was applied.
 4. Real HTTP body delivery and acknowledgement timing: implemented.
 5. Shared proxy body pacing, byte counters, and upload deadlines: implemented.
 6. Scheduled outages, restoration, and failed-transfer reports: implemented.
+7. Explicit Basic and full-file Retry strategies: implemented.

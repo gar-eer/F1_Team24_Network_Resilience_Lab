@@ -90,11 +90,15 @@ async def upload_to_origin(payload, port, chunk_bytes=4096):
 
 
 async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_KBPS,
-                     timeout_s=120, phases=None):
-    """Route one upload through a paced proxy and private loopback origin."""
+                     timeout_s=120, phases=None, strategy='basic', max_retries=5):
+    """Run Basic or full-file Retry against one fixed proxy trial schedule."""
     from .proxy import BandwidthProxy
 
     validate_settings(payload_bytes, bandwidth_kbps, chunk_bytes)
+    if strategy not in ('basic', 'retry'):
+        raise ValueError('strategy must be basic or retry')
+    if type(max_retries) is not int or max_retries < 0:
+        raise ValueError('max_retries must be a nonnegative integer')
     if (isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float))
             or not math.isfinite(timeout_s) or timeout_s <= 0):
         raise ValueError('timeout_s must be a positive finite number')
@@ -112,12 +116,42 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                 await proxy.start()
                 port = proxy_server.sockets[0].getsockname()[1]
                 started = time.perf_counter()
+                progress = {'attempt_count': 0, 'retry_count': 0}
+
+                def record(kind, **details):
+                    proxy.events.append({
+                        'at': time.monotonic() - proxy.started, 'kind': kind, **details,
+                    })
+
+                async def attempt_upload():
+                    while True:
+                        progress['attempt_count'] += 1
+                        progress['retry_count'] = progress['attempt_count'] - 1
+                        record('upload_attempt', attempt=progress['attempt_count'])
+                        try:
+                            # Every attempt sends the identical full body from byte zero.
+                            return await upload_to_origin(payload, port, chunk_bytes)
+                        except (OSError, ValueError, asyncio.IncompleteReadError) as error:
+                            reason = str(error) or type(error).__name__
+                            record('attempt_failed', attempt=progress['attempt_count'],
+                                   error=reason)
+                            if strategy == 'basic':
+                                raise
+                            if progress['retry_count'] >= max_retries:
+                                raise RuntimeError(f'Retry budget exhausted: {reason}') from error
+                            delay = min(0.25 * 2 ** min(progress['retry_count'], 3), 2)
+                            record('retry_scheduled', delay_s=delay,
+                                   next_attempt=progress['attempt_count'] + 1)
+                            await asyncio.sleep(delay)
+
                 try:
                     result = await asyncio.wait_for(
-                        upload_to_origin(payload, port, chunk_bytes), timeout_s,
+                        attempt_upload(), timeout_s,
                     )
-                    result.update(status='completed', error=None)
-                except (OSError, TimeoutError, ValueError, asyncio.IncompleteReadError) as error:
+                    result.update(status='completed', error=None,
+                                  elapsed_s=time.perf_counter() - started)
+                except (OSError, TimeoutError, ValueError, RuntimeError,
+                        asyncio.IncompleteReadError) as error:
                     result = {
                         'transferred_bytes': 0,
                         'elapsed_s': time.perf_counter() - started,
@@ -125,6 +159,8 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                         'error': ('Upload deadline exceeded' if isinstance(error, TimeoutError)
                                   else str(error) or type(error).__name__),
                     }
+                result.update(progress, strategy=strategy,
+                              max_retries=max_retries if strategy == 'retry' else 0)
                 result['proxy_ingress_bytes'] = proxy.ingress_bytes
                 result['forwarded_bytes'] = proxy.forwarded_bytes
                 result['phases'] = proxy.phases

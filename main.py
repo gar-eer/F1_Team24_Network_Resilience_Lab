@@ -15,6 +15,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--simulate', action='store_true',
                         help='Use the earlier delay-based simulator instead of HTTP')
+    parser.add_argument('--strategy', choices=('basic', 'retry'), default='basic',
+                        help='HTTP upload strategy (default: basic)')
+    parser.add_argument('--max-retries', type=int, default=5,
+                        help='Total additional attempts for Retry (default: 5)')
     parser.add_argument('--scenario', choices=SCENARIOS,
                         help='Named preset; explicit settings override its values')
     parser.add_argument('--json', action='store_true',
@@ -39,6 +43,10 @@ def main():
                       else preset.get('bandwidth_kbps', BANDWIDTH_KBPS))
     try:
         validate_settings(payload_bytes, bandwidth_kbps, args.chunk_bytes)
+        if args.max_retries < 0:
+            raise ValueError('max_retries must be a nonnegative integer')
+        if args.simulate and args.strategy != 'basic':
+            raise ValueError('Retry strategy requires HTTP mode')
         if not math.isfinite(args.timeout_s) or args.timeout_s <= 0:
             raise ValueError('timeout_s must be a positive finite number')
         phases = build_phases(
@@ -56,6 +64,7 @@ def main():
         else:
             upload = asyncio.run(run_upload(
                 payload_bytes, args.chunk_bytes, bandwidth_kbps, args.timeout_s, phases,
+                strategy=args.strategy, max_retries=args.max_retries,
             ))
             transferred, elapsed = upload['transferred_bytes'], upload['elapsed_s']
     except ValueError as error:
@@ -80,6 +89,8 @@ def main():
             forwarded_bytes=upload['forwarded_bytes'], timeout_s=args.timeout_s,
             phases=upload['phases'], events=upload['events'],
             status=upload['status'], error=upload['error'],
+            strategy=upload['strategy'], max_retries=upload['max_retries'],
+            attempt_count=upload['attempt_count'], retry_count=upload['retry_count'],
         )
     if args.json:
         print(json.dumps(result, indent=2, allow_nan=False))
@@ -94,6 +105,8 @@ def main():
         else:
             print(f'Transferred: {transferred} bytes (origin acknowledged)')
             print(f'Proxy body bandwidth: {bandwidth_kbps:g} kbps')
+            print(f'Strategy: {result["strategy"]}; attempts: {result["attempt_count"]}; '
+                  f'retries: {result["retry_count"]}')
         print(f'Elapsed: {elapsed:.3f} s')
         print(f'Status: {result["status"]}')
         if result['error']:

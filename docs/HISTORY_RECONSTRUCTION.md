@@ -72,3 +72,11 @@ baseline, low-bandwidth, and outage comparison, JSON capture commands, expected
 exit codes, and an experiment report template. Distinguish observed measurements
 and actual data collection dates from hypothetical timings and historical
 milestone dates. No application behavior changes at this milestone.
+
+## Upload strategies milestone — 12 October 2026
+
+Assign this reconstructed milestone to Sreerag Aneesh: expose Basic and full-file
+Retry strategies, implement capped exponential backoff and a total trial retry
+budget, preserve the absolute proxy schedule across attempts, and include all
+attempts and backoff in the deadline and elapsed time. Report actual attempts,
+retries, and client events. Resumable transfer remains a separate milestone.

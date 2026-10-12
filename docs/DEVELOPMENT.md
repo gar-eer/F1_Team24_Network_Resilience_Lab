@@ -74,9 +74,9 @@ duration. Outages are supported in HTTP mode only.
 One proxy monitor uses absolute monotonic times for the entire trial. An offline
 phase aborts both sides of active proxy connections and cancels forwarding
 handlers. Incoming connections are rejected until an online phase is applied.
-Restoration starts no client attempts by itself. The current single-attempt
-runner records failure and ends the trial immediately; retry behavior follows
-in a later milestone.
+Restoration starts no client attempts by itself. Basic records failure and ends
+the trial immediately. Retry follows its backoff schedule and may establish a
+fresh connection after restoration.
 
 Failed results retain observed events and application body counters. The origin
 commits a full request only after reading its entire body. No incomplete body is
@@ -84,12 +84,28 @@ treated as an acknowledged upload. Tests keep a proxy alive across an outage to
 check that it rejects offline attempts and accepts fresh uploads on restoration.
 Cleanup closes connections and removes cancelled tasks from the handler set.
 
+## Basic and Retry strategies
+
+`--strategy basic` is the default: send the full file once and stop on error.
+`--strategy retry` sends the identical full file again from byte zero after each
+failed attempt, with backoff delays of 0.25, 0.5, 1, then 2 seconds, capped at 2.
+`--max-retries` must be a nonnegative integer (default 5). It limits additional
+attempts over the entire trial. A zero budget permits no extra attempts.
+
+Each trial retains one origin, proxy, shared bandwidth allowance, and absolute
+phase schedule across all attempts. `--timeout-s` covers all attempts and
+backoff. Actual attempts and scheduled retries have separate events; timing out
+during backoff does not increment the retry count. Strategy tests exercise
+outage recovery, full-file repeated work, exhausted budgets, and deadline expiry
+during backoff over real localhost sockets.
+
 ## Planned milestones
 
 1. Implement the original bandwidth-limited transfer simulator.
 2. Add configurable scenarios, timing, and result reporting.
 3. Scheduled outages and restoration: implemented.
-4. Add retry, resumable transfer, integrity checks, and recovery metrics.
+4. Basic and Retry are implemented; add resumable transfer, integrity checks,
+   and recovery metrics.
 5. Validate networking behavior and document reproducible experiments.
 6. Build the frontend and result visualizations.
 7. Add light mode and remember the selected theme.

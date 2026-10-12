@@ -1,6 +1,6 @@
 # Running and reporting experiments
 
-This guide covers the single-attempt HTTP runner available at this milestone.
+This guide covers Basic and full-file Retry HTTP strategies.
 Use real HTTP mode for network experiments. The optional `--simulate` mode only
 accounts for transfer time and should be reported separately.
 
@@ -23,7 +23,7 @@ allowances are separate. Record relevant background load or configuration change
 
 ## Scenarios
 
-| Preset | Payload | Body bandwidth | Disruption | Expected current outcome |
+| Preset | Payload | Body bandwidth | Disruption | Expected Basic outcome |
 | --- | --- | --- | --- | --- |
 | `baseline` | 65,536 bytes | 512 kbps | None | Completed; exit 0 |
 | `low-bandwidth` | 65,536 bytes | 256 kbps | None | Completed; exit 0 |
@@ -34,10 +34,10 @@ seconds for low bandwidth. These are calculations, not measured results. Actual
 timing includes connection, pacing, scheduling, and acknowledgement overhead.
 
 The outage payload cannot finish before its configured interruption at the
-configured rate. The single-attempt client stops on failure and its trial is
+configured rate. Basic stops on failure and its trial is
 cleaned up immediately. Restoration after termination is scheduled but unobserved.
-The proxy restoration behavior is checked separately by the automated tests;
-this runner does not yet retry or resume uploads.
+The proxy restoration behavior is also checked by automated tests. Retry can
+keep a trial alive across restoration; resumable uploads are not implemented yet.
 
 ## Capture one comparison
 
@@ -79,6 +79,24 @@ comparison. Preserve every valid trial, including failures. Record the number
 of trials and the range of observed durations; three trials do not establish
 general reliability or statistical significance.
 
+## Compare Basic and Retry
+
+The commands above use Basic, the default strategy. Add a separate Retry run:
+
+```powershell
+python main.py --scenario outage --strategy retry --max-retries 5 --json | Set-Content -Encoding utf8 'tmp/experiments/outage-retry-01.json'
+$retryExit = $LASTEXITCODE
+$retryExit
+```
+
+Under the default outage schedule and deadline, Retry is expected to complete
+after restoration (exit 0), while Basic fails (exit 1). Run each command as a
+fresh trial with the same payload, rate, write chunks, phases, and deadline.
+Record the strategy, retry budget, actual attempts, and retries for every run.
+Retry starts full-file requests from byte zero, so its counters can exceed the
+payload size. Inspect recorded events and byte counts rather than assuming a
+fixed number of attempts or a universal completion time.
+
 ## Check each result
 
 - Confirm `mode` is `http` and `bandwidth_applied` is true.
@@ -101,7 +119,7 @@ it using saved JSON rather than estimated timings. Keep one summary row per
 trial and preserve the complete JSON as the source record. Use paths relative
 to the report when linking raw results.
 
-For each scenario, summarize completed and failed trial counts separately.
+For each scenario and strategy, summarize completed and failed trial counts separately.
 Calculate a completion fraction only over valid finished trials and name its
 denominator. Report observed timings with the outcome they belong to: a failed
 upload's short time to interruption is not a faster completed transfer.

@@ -69,16 +69,21 @@ class BandwidthProxy:
                 writer.transport.abort()
                 return
             request, fields = await asyncio.wait_for(read_headers(reader), self.timeout_s)
-            remaining = int(fields.get('content-length', '-1'))
-            if request != 'POST /upload HTTP/1.1' or not 0 < remaining <= MAX_PAYLOAD_BYTES:
+            remaining = int(fields.get('content-length', '0'))
+            probe = request == 'GET /offset HTTP/1.1' and remaining == 0
+            upload = (request in ('POST /upload HTTP/1.1', 'POST /chunk HTTP/1.1')
+                      and 0 < remaining <= MAX_PAYLOAD_BYTES)
+            if not (probe or upload):
                 raise ValueError('Invalid upload request')
             upstream_reader, upstream = await asyncio.open_connection(
                 '127.0.0.1', self.origin_port,
             )
             self.writers.add(upstream)
+            extra = ''.join(f'{key}: {fields[key]}\r\n'
+                            for key in ('x-offset', 'x-total-bytes') if key in fields)
             upstream.write(
                 f'{request}\r\nHost: 127.0.0.1\r\nContent-Length: {remaining}\r\n'
-                'Connection: close\r\n\r\n'.encode()
+                f'{extra}Connection: close\r\n\r\n'.encode()
             )
             while remaining:
                 body = await asyncio.wait_for(

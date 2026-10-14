@@ -54,14 +54,17 @@ Paced HTTP uploads also include connection and acknowledgement overhead.
 | `mode` | `http` for real uploads, or `simulation` for delay-based accounting |
 | `bandwidth_applied` | True: real proxy pacing in HTTP mode, simulated timing otherwise |
 | `scenario_id` | Identifier of the selected scenario |
-| `strategy` | HTTP-only `basic` (default) or full-file `retry` |
-| `attempt_count` | HTTP-only total upload attempts actually started |
-| `retry_count` | HTTP-only additional attempts started after a failure and backoff |
-| `max_retries` | Effective retry budget; zero for Basic, configured budget for Retry |
+| `strategy` | HTTP-only `basic` (default), `retry`, or `resumable` |
+| `attempt_count` | Started HTTP operations: full-file attempts, or Resumable chunks and probes |
+| `retry_count` | Recovery operations actually begun after failure and backoff; successful chunks/probes add none |
+| `max_retries` | Effective total retry budget; zero for Basic |
+| `resume_chunk_bytes` | HTTP commit chunk size used only by Resumable; default 32 KiB |
+| `confirmed_bytes` | Latest contiguous origin offset confirmed by an acknowledgement or probe |
+| `offset_probe_count` | Resumable offset requests actually begun, including failed probes |
 | `payload_bytes` | Requested transfer size |
 | `bandwidth_kbps` | Configured bandwidth limit |
 | `chunk_bytes` | Maximum application body write size, or simulation step size |
-| `transferred_bytes` | Origin-acknowledged bytes in HTTP mode; simulated bytes otherwise |
+| `transferred_bytes` | Confirmed bytes in HTTP mode, possibly partial on failed Resumable trials; simulated bytes otherwise |
 | `proxy_ingress_bytes` | HTTP-only body bytes read by the proxy, excluding headers |
 | `forwarded_bytes` | HTTP-only body bytes submitted by the proxy to the origin socket |
 | `timeout_s` | HTTP-only upload deadline, excluding service setup and cleanup |
@@ -74,9 +77,15 @@ Paced HTTP uploads also include connection and acknowledgement overhead.
 HTTP acknowledgement confirms receipt of the full body by the local origin.
 It does not establish hash integrity, durable disk storage, or wire overhead.
 Simulation counts do not establish network delivery. Hash integrity checks
-and resumable progress belong to later milestones. An interrupted
+belong to a later milestone. An interrupted
 full-file request receives no acknowledgement, so `transferred_bytes` remains
 zero even when the proxy has forwarded part of its body.
+
+Resumable commits contiguous complete HTTP chunks. The origin discards an
+incomplete chunk while preserving earlier committed data. A failed Resumable
+trial may report nonzero confirmed and transferred bytes without being completed.
+Confirmed progress can lag the origin if an acknowledgement is lost; the next
+offset probe reconciles that state.
 
 Invalid settings or unknown presets produce a command-line error with exit
 status 2 and no result on standard output. They are not counted as completed
@@ -94,7 +103,7 @@ The delay-based simulator rejects outage schedules instead of silently ignoring
 them. Phase event kinds are `started`, `outage`, `restored`, and `rate_changed`.
 Event `scheduled_at` is the configured phase time; `at` is when it was applied.
 
-Client event kinds are `upload_attempt`, `attempt_failed`, and `retry_scheduled`.
+Client event kinds include `upload_attempt`, `attempt_failed`, and `retry_scheduled`.
 An attempt event includes its one-based number. A scheduled retry includes the
 backoff duration (`delay_s`) and next attempt number. Scheduled retries do not
 count as started until their attempt event occurs. Phase events alone include
@@ -102,9 +111,17 @@ count as started until their attempt event occurs. Phase events alone include
 
 Retry backoff is 0.25, 0.5, 1, then 2 seconds, capped at 2 seconds. The retry
 budget is global to a trial; it does not reset on restoration or reconnect.
-All attempts send the same full body from byte zero. Successful Retry
+Retry sends the same full body from byte zero. Successful Retry
 `elapsed_s` includes earlier failed attempts and backoff, and proxy byte counters
 include partial and repeated bodies across those attempts.
+
+Resumable sends sequential chunks and probes `GET /offset` through the proxy
+after any failure and backoff. Successful chunks and probes do not increment or
+reset the retry budget. Failed probes require another backoff and consume the
+same trial budget. `chunk_committed` and `offset_confirmed` events record the
+acknowledged offset. Its `attempt_count` includes chunks and probes, so it is
+not a cross-strategy count of full-file attempts. All retries remain inside the
+same deadline and absolute phase schedule.
 
 ## Implementation milestones
 
@@ -115,3 +132,4 @@ include partial and repeated bodies across those attempts.
 5. Shared proxy body pacing, byte counters, and upload deadlines: implemented.
 6. Scheduled outages, restoration, and failed-transfer reports: implemented.
 7. Explicit Basic and full-file Retry strategies: implemented.
+8. Resumable uploads with committed-offset probes: implemented.

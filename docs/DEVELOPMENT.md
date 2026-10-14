@@ -99,13 +99,37 @@ during backoff does not increment the retry count. Strategy tests exercise
 outage recovery, full-file repeated work, exhausted budgets, and deadline expiry
 during backoff over real localhost sockets.
 
+## Resumable strategy
+
+`--strategy resumable` sends contiguous HTTP commit chunks (default 32 KiB),
+configured with `--resume-chunk-bytes`. The existing `--chunk-bytes` option
+controls socket write slices, independently of commit boundaries. The final
+commit chunk may be shorter than the configured size.
+
+The origin accepts `POST /chunk` with `X-Offset` and `X-Total-Bytes`. It reads the
+entire body before checking the current contiguous offset and committing bytes
+to its in-memory buffer. An incomplete or out-of-order chunk cannot overwrite
+earlier progress. `GET /offset` reports the committed size. Both endpoints pass
+through the same proxy and outage schedule as full-file uploads.
+
+After failure and backoff, the client probes the committed offset before
+sending more chunks. It can reconcile a chunk committed by the origin even when
+its acknowledgement did not reach the client. Successful chunks and probes do
+not consume or reset the retry budget; failed probes consume the same budget.
+The deadline includes chunks, probes, failures, and backoff.
+
+Results expose confirmed progress and probe counts. `attempt_count` counts
+started HTTP operations, including successful chunks and probes for Resumable.
+Only operations begun after failure/backoff add to `retry_count`. Tests check
+exact committed bytes, partial chunks, incorrect offsets, interruption recovery,
+probes during outages, and a shared retry budget across successful progress.
+
 ## Planned milestones
 
 1. Implement the original bandwidth-limited transfer simulator.
 2. Add configurable scenarios, timing, and result reporting.
 3. Scheduled outages and restoration: implemented.
-4. Basic and Retry are implemented; add resumable transfer, integrity checks,
-   and recovery metrics.
+4. Basic, Retry, and Resumable are implemented; add integrity checks and recovery metrics.
 5. Validate networking behavior and document reproducible experiments.
 6. Build the frontend and result visualizations.
 7. Add light mode and remember the selected theme.

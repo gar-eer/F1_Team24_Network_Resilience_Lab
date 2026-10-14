@@ -1,6 +1,6 @@
 # Running and reporting experiments
 
-This guide covers Basic and full-file Retry HTTP strategies.
+This guide covers Basic, full-file Retry, and Resumable HTTP strategies.
 Use real HTTP mode for network experiments. The optional `--simulate` mode only
 accounts for transfer time and should be reported separately.
 
@@ -37,7 +37,8 @@ The outage payload cannot finish before its configured interruption at the
 configured rate. Basic stops on failure and its trial is
 cleaned up immediately. Restoration after termination is scheduled but unobserved.
 The proxy restoration behavior is also checked by automated tests. Retry can
-keep a trial alive across restoration; resumable uploads are not implemented yet.
+keep a trial alive across restoration. Resumable retains committed chunks and
+continues from the server-reported offset.
 
 ## Capture one comparison
 
@@ -96,6 +97,27 @@ Record the strategy, retry budget, actual attempts, and retries for every run.
 Retry starts full-file requests from byte zero, so its counters can exceed the
 payload size. Inspect recorded events and byte counts rather than assuming a
 fixed number of attempts or a universal completion time.
+
+## Compare Resumable
+
+```powershell
+python main.py --scenario outage --strategy resumable --resume-chunk-bytes 4096 --json | Set-Content -Encoding utf8 'tmp/experiments/outage-resumable-01.json'
+$resumableExit = $LASTEXITCODE
+$resumableExit
+```
+
+This example uses 4 KiB commit chunks so completed chunks can be acknowledged
+before the preset's early outage. The default commit size is 32 KiB; a first
+chunk that has not finished before interruption has no committed progress to
+preserve. Keep socket write size, payload, rate, phases, deadline, and retry budget
+fixed when comparing strategies, and record Resumable's commit size separately.
+
+Inspect `confirmed_bytes`, `offset_probe_count`, and progress events alongside
+proxy byte counters. A failed Resumable trial can retain confirmed partial data;
+nonzero progress does not make it completed. Successful chunk and probe requests
+do not consume retries. `attempt_count` includes these requests for Resumable,
+so it is not directly comparable to Basic/Retry full-file attempt counts.
+Probe failures count against the same retry budget and remain subject to outages.
 
 ## Check each result
 

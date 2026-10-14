@@ -80,3 +80,12 @@ Retry strategies, implement capped exponential backoff and a total trial retry
 budget, preserve the absolute proxy schedule across attempts, and include all
 attempts and backoff in the deadline and elapsed time. Report actual attempts,
 retries, and client events. Resumable transfer remains a separate milestone.
+
+## Resumable upload milestone — 14 October 2026
+
+Assign this reconstructed milestone to Sreerag Aneesh: commit complete contiguous
+chunks at the origin, preserve prior progress across connection interruptions,
+probe committed offsets through the same proxy after failures, and continue at
+the confirmed offset. Keep retry budgets and deadlines global across chunks and
+probes. Report confirmed bytes, request attempts, and offset probes. Hash
+verification remains a separate milestone.

@@ -12,8 +12,8 @@ A Python project for exploring how bandwidth limits affect data transfers.
 
 The initial simulator and real localhost HTTP upload engine are implemented.
 Bandwidth pacing, scheduled outages, and connection restoration are implemented.
-Basic and full-file Retry strategies are available. Resumable uploads, hash
-verification, and the dashboard will follow.
+Basic, full-file Retry, and Resumable strategies are available. Hash verification
+and the dashboard will follow.
 
 ## Development status
 
@@ -59,8 +59,8 @@ python -m unittest discover -v
 The tests check custom settings, partial chunks, invalid input, command-line
 output, exact received HTTP bodies, rate-dependent upload timing, aggregate
 pacing across concurrent connections, outage interruption, restoration, and
-deadline cleanup, full-file retries, and retry budgets. Tests require permission
-to open local sockets.
+deadline cleanup, full-file retries, committed chunks, offset probes, and shared
+retry budgets. Tests require permission to open local sockets.
 
 ## Configure a transfer
 
@@ -103,6 +103,7 @@ alive and send the full body again after restoration.
 ```powershell
 python main.py --scenario outage --strategy basic --json
 python main.py --scenario outage --strategy retry --max-retries 5 --json
+python main.py --scenario outage --strategy resumable --resume-chunk-bytes 4096 --json
 ```
 
 - **Basic:** one full-file attempt; no automatic retry.
@@ -110,12 +111,21 @@ python main.py --scenario outage --strategy retry --max-retries 5 --json
   Backoff is 0.25, 0.5, 1, then 2 seconds, capped at 2 seconds thereafter.
   `--max-retries` is the total number of additional attempts allowed per trial;
   zero permits only the initial attempt. The default budget is five retries.
+- **Resumable:** send sequential HTTP chunks and retain the origin's committed
+  offset. After failure and backoff, query that offset through the same proxy,
+  then continue from it. An incomplete chunk is discarded; complete chunks stay
+  committed in the running origin's memory. `--resume-chunk-bytes` controls HTTP
+  commit size (default 32 KiB), while `--chunk-bytes` controls socket write size.
 
-Retry attempts use the original absolute outage schedule and shared proxy
+Retry and Resumable use the original absolute outage schedule and shared proxy
 allowance. The deadline covers all attempts and backoff, not each attempt
-separately. Retry count increases only when another attempt actually begins.
-Reports include strategy, attempts, retry count, budget, and retry events.
-Retry is available only in HTTP mode. It does not preserve partial upload data.
+separately. Retry count increases only when another recovery operation actually
+begins. Successful chunks and probes do not add retries or reset the budget;
+failed probes consume the same total budget. Reports include strategy, request
+attempts, retries, confirmed bytes, offset probes, and progress events.
+Retry and Resumable are available only in HTTP mode. Only Resumable preserves
+partial committed progress. Acknowledgement confirms bytes in memory; SHA-256
+integrity checks are not implemented yet.
 
 Configure an outage directly with:
 

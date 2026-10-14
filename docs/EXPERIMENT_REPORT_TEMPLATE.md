@@ -17,8 +17,9 @@ do not treat this document as evidence of an executed experiment.
 | Operating system | [system and version] |
 | Relevant background load | [observations] |
 | Execution mode | [HTTP or simulation; report separately] |
-| Client strategy | [Basic or Retry; report separately] |
+| Client strategy | [Basic, Retry, or Resumable; report separately] |
 | Retry budget | [effective max_retries from the result] |
+| Resumable commit size | [resume_chunk_bytes, or not applicable] |
 | Planned trials per scenario | [count] |
 
 Historical milestone dates in the reconstructed Git history are not evidence
@@ -35,6 +36,8 @@ Keep one row per valid finished trial. Use the exact JSON field definitions.
 Add rows as needed and retain failures. Record the strategy, attempt_count, and
 retry_count for each trial in its notes or additional columns. Link the raw JSON
 for each row.
+For Resumable, also record confirmed_bytes and offset_probe_count. Its request
+attempt count includes successful chunks and probes, unlike a full-file count.
 
 | Run ID | Scenario | Outcome | Elapsed (s) | Payload (bytes) | Acknowledged (bytes) | Proxy ingress (bytes) | Forwarded (bytes) | Exit code | Raw JSON |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -60,8 +63,8 @@ expected and whether the evidence matched it.]
 ## Limits and conclusion
 
 [Explain what the measurements answer and what remains unmeasured. At this
-milestone, hash integrity, TCP retransmissions, wire overhead,
-and resumable recovery are unavailable. Avoid general reliability claims from a
+milestone, hash integrity, TCP retransmissions, and wire overhead
+are unavailable. Avoid general reliability claims from a
 small set of local trials.]
 
 ## Reproduction

@@ -18,21 +18,47 @@ async def read_headers(reader):
 
 
 class UploadOrigin:
-    """Accept one full upload into memory and acknowledge its received size."""
+    """Commit complete full-file requests or contiguous chunks in memory."""
 
-    def __init__(self, timeout_s=120):
-        self.received = b''
+    def __init__(self, timeout_s=120, expected_bytes=None):
+        self.received = bytearray()
         self.timeout_s = timeout_s
+        self.total_bytes = expected_bytes
 
     async def handle(self, reader, writer):
         try:
             request, fields = await asyncio.wait_for(read_headers(reader), 5)
-            length = int(fields.get('content-length', '-1'))
-            if request != 'POST /upload HTTP/1.1' or not 0 < length <= MAX_PAYLOAD_BYTES:
-                raise ValueError('Invalid upload request')
-            body = await asyncio.wait_for(reader.readexactly(length), self.timeout_s)
-            self.received = body
-            status, value = '200 OK', {'received_bytes': len(body)}
+            if request == 'GET /offset HTTP/1.1':
+                if int(fields.get('content-length', '0')) != 0:
+                    raise ValueError('Offset probes must not include a body')
+                value = {'offset': len(self.received)}
+            else:
+                length = int(fields.get('content-length', '-1'))
+                if not 0 < length <= MAX_PAYLOAD_BYTES:
+                    raise ValueError('Invalid body length')
+                if request == 'POST /upload HTTP/1.1':
+                    if self.total_bytes is not None and length != self.total_bytes:
+                        raise ValueError('Unexpected full-file size')
+                    body = await asyncio.wait_for(reader.readexactly(length), self.timeout_s)
+                    self.received[:] = body
+                    self.total_bytes = length
+                elif request == 'POST /chunk HTTP/1.1':
+                    offset = int(fields.get('x-offset', '-1'))
+                    total = int(fields.get('x-total-bytes', '-1'))
+                    if (not 0 <= offset < total <= MAX_PAYLOAD_BYTES
+                            or offset + length > total
+                            or self.total_bytes is not None and total != self.total_bytes):
+                        raise ValueError('Invalid chunk size or offset')
+                    body = await asyncio.wait_for(reader.readexactly(length), self.timeout_s)
+                    # Check again after the read: another request may have committed.
+                    if offset != len(self.received):
+                        raise ValueError('Chunk does not begin at the committed offset')
+                    self.received.extend(body)
+                    self.total_bytes = total
+                else:
+                    raise ValueError('Invalid upload endpoint')
+                value = {'received_bytes': len(body), 'offset': len(self.received)}
+            status = '200 OK'
         except (ValueError, UnicodeError, asyncio.IncompleteReadError,
                 asyncio.LimitOverrunError, TimeoutError):
             status, value = '400 Bad Request', {'error': 'Invalid or incomplete upload'}
@@ -57,30 +83,26 @@ class UploadOrigin:
                 pass
 
 
-async def upload_to_origin(payload, port, chunk_bytes=4096):
-    """Send real bytes and require an HTTP acknowledgement for the whole body."""
+async def request_origin(port, method, path, body=b'', chunk_bytes=4096, extra_headers=None):
+    """Exchange one HTTP request with an origin or the trial's proxy port."""
     if type(chunk_bytes) is not int or chunk_bytes <= 0:
         raise ValueError('chunk_bytes must be a positive integer')
-    started = time.perf_counter()
     reader, writer = await asyncio.open_connection('127.0.0.1', port)
     try:
+        extra = ''.join(f'{key}: {value}\r\n' for key, value in (extra_headers or {}).items())
         writer.write(
-            f'POST /upload HTTP/1.1\r\nHost: 127.0.0.1\r\n'
-            f'Content-Length: {len(payload)}\r\nConnection: close\r\n\r\n'.encode()
+            f'{method} {path} HTTP/1.1\r\nHost: 127.0.0.1\r\n'
+            f'Content-Length: {len(body)}\r\n{extra}Connection: close\r\n\r\n'.encode()
         )
-        for offset in range(0, len(payload), chunk_bytes):
-            writer.write(payload[offset:offset + chunk_bytes])
+        for offset in range(0, len(body), chunk_bytes):
+            writer.write(body[offset:offset + chunk_bytes])
             await writer.drain()
         status, fields = await read_headers(reader)
-        body = await reader.readexactly(int(fields['content-length']))
-        acknowledgement = json.loads(body)
-        if (status != 'HTTP/1.1 200 OK'
-                or acknowledgement.get('received_bytes') != len(payload)):
-            raise ValueError('Origin did not acknowledge the complete upload')
-        return {
-            'transferred_bytes': acknowledgement['received_bytes'],
-            'elapsed_s': time.perf_counter() - started,
-        }
+        response = await reader.readexactly(int(fields['content-length']))
+        acknowledgement = json.loads(response)
+        if status != 'HTTP/1.1 200 OK':
+            raise ValueError(f'Origin rejected request: {acknowledgement.get("error", status)}')
+        return acknowledgement
     finally:
         writer.close()
         try:
@@ -89,23 +111,35 @@ async def upload_to_origin(payload, port, chunk_bytes=4096):
             pass
 
 
+async def upload_to_origin(payload, port, chunk_bytes=4096):
+    """Send a full file and require acknowledgement for the entire body."""
+    started = time.perf_counter()
+    acknowledgement = await request_origin(port, 'POST', '/upload', payload, chunk_bytes)
+    if acknowledgement.get('received_bytes') != len(payload):
+        raise ValueError('Origin did not acknowledge the complete upload')
+    return {'transferred_bytes': len(payload), 'elapsed_s': time.perf_counter() - started}
+
+
 async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_KBPS,
-                     timeout_s=120, phases=None, strategy='basic', max_retries=5):
-    """Run Basic or full-file Retry against one fixed proxy trial schedule."""
+                     timeout_s=120, phases=None, strategy='basic', max_retries=5,
+                     resume_chunk_bytes=32768):
+    """Run Basic, Retry, or Resumable against one fixed proxy trial schedule."""
     from .proxy import BandwidthProxy
 
     validate_settings(payload_bytes, bandwidth_kbps, chunk_bytes)
-    if strategy not in ('basic', 'retry'):
-        raise ValueError('strategy must be basic or retry')
+    if strategy not in ('basic', 'retry', 'resumable'):
+        raise ValueError('strategy must be basic, retry, or resumable')
     if type(max_retries) is not int or max_retries < 0:
         raise ValueError('max_retries must be a nonnegative integer')
+    if type(resume_chunk_bytes) is not int or not 0 < resume_chunk_bytes <= MAX_PAYLOAD_BYTES:
+        raise ValueError('resume_chunk_bytes must be a positive integer up to 32 MiB')
     if (isinstance(timeout_s, bool) or not isinstance(timeout_s, (int, float))
             or not math.isfinite(timeout_s) or timeout_s <= 0):
         raise ValueError('timeout_s must be a positive finite number')
     if type(payload_bytes) is not int or not 0 < payload_bytes <= MAX_PAYLOAD_BYTES:
         raise ValueError('HTTP payload size must be between 1 byte and 32 MiB')
     payload = (bytes(range(256)) * ((payload_bytes + 255) // 256))[:payload_bytes]
-    origin = UploadOrigin(timeout_s)
+    origin = UploadOrigin(timeout_s, payload_bytes)
     server = await asyncio.start_server(origin.handle, '127.0.0.1', 0)
     async with server:
         origin_port = server.sockets[0].getsockname()[1]
@@ -116,51 +150,98 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                 await proxy.start()
                 port = proxy_server.sockets[0].getsockname()[1]
                 started = time.perf_counter()
-                progress = {'attempt_count': 0, 'retry_count': 0}
+                progress = {'attempt_count': 0, 'retry_count': 0,
+                            'confirmed_bytes': 0, 'offset_probe_count': 0}
 
                 def record(kind, **details):
                     proxy.events.append({
                         'at': time.monotonic() - proxy.started, 'kind': kind, **details,
                     })
 
+                async def recover(error):
+                    reason = str(error) or type(error).__name__
+                    record('attempt_failed', attempt=progress['attempt_count'], error=reason)
+                    if strategy == 'basic':
+                        raise error
+                    if progress['retry_count'] >= max_retries:
+                        raise RuntimeError(f'Retry budget exhausted: {reason}') from error
+                    delay = min(0.25 * 2 ** min(progress['retry_count'], 3), 2)
+                    record('retry_scheduled', delay_s=delay,
+                           next_attempt=progress['attempt_count'] + 1)
+                    await asyncio.sleep(delay)
+                    # No await separates this increment from the next operation.
+                    progress['retry_count'] += 1
+
                 async def attempt_upload():
                     while True:
                         progress['attempt_count'] += 1
-                        progress['retry_count'] = progress['attempt_count'] - 1
                         record('upload_attempt', attempt=progress['attempt_count'])
                         try:
                             # Every attempt sends the identical full body from byte zero.
-                            return await upload_to_origin(payload, port, chunk_bytes)
+                            result = await upload_to_origin(payload, port, chunk_bytes)
+                            progress['confirmed_bytes'] = payload_bytes
+                            return result
                         except (OSError, ValueError, asyncio.IncompleteReadError) as error:
-                            reason = str(error) or type(error).__name__
-                            record('attempt_failed', attempt=progress['attempt_count'],
-                                   error=reason)
-                            if strategy == 'basic':
-                                raise
-                            if progress['retry_count'] >= max_retries:
-                                raise RuntimeError(f'Retry budget exhausted: {reason}') from error
-                            delay = min(0.25 * 2 ** min(progress['retry_count'], 3), 2)
-                            record('retry_scheduled', delay_s=delay,
-                                   next_attempt=progress['attempt_count'] + 1)
-                            await asyncio.sleep(delay)
+                            await recover(error)
+
+                async def resume_upload():
+                    offset = 0
+                    needs_probe = False
+                    while offset < payload_bytes:
+                        try:
+                            if needs_probe:
+                                progress['attempt_count'] += 1
+                                progress['offset_probe_count'] += 1
+                                record('upload_attempt', attempt=progress['attempt_count'],
+                                       operation='offset_probe')
+                                reply = await request_origin(port, 'GET', '/offset')
+                                committed = reply.get('offset')
+                                if (type(committed) is not int
+                                        or not progress['confirmed_bytes'] <= committed <= payload_bytes):
+                                    raise ValueError('Invalid committed offset from origin')
+                                offset = committed
+                                progress['confirmed_bytes'] = offset
+                                record('offset_confirmed', offset=offset)
+                                needs_probe = False
+                                if offset == payload_bytes:
+                                    break
+                            body = payload[offset:offset + resume_chunk_bytes]
+                            progress['attempt_count'] += 1
+                            record('upload_attempt', attempt=progress['attempt_count'],
+                                   operation='chunk', offset=offset, size_bytes=len(body))
+                            reply = await request_origin(
+                                port, 'POST', '/chunk', body, chunk_bytes,
+                                {'X-Offset': offset, 'X-Total-Bytes': payload_bytes},
+                            )
+                            if (reply.get('offset') != offset + len(body)
+                                    or reply.get('received_bytes') != len(body)):
+                                raise ValueError('Origin did not acknowledge the complete chunk')
+                            offset += len(body)
+                            progress['confirmed_bytes'] = offset
+                            record('chunk_committed', offset=offset, size_bytes=len(body))
+                        except (OSError, ValueError, asyncio.IncompleteReadError) as error:
+                            await recover(error)
+                            needs_probe = True
+                    return {'transferred_bytes': offset}
 
                 try:
                     result = await asyncio.wait_for(
-                        attempt_upload(), timeout_s,
+                        resume_upload() if strategy == 'resumable' else attempt_upload(), timeout_s,
                     )
                     result.update(status='completed', error=None,
                                   elapsed_s=time.perf_counter() - started)
                 except (OSError, TimeoutError, ValueError, RuntimeError,
                         asyncio.IncompleteReadError) as error:
                     result = {
-                        'transferred_bytes': 0,
+                        'transferred_bytes': progress['confirmed_bytes'],
                         'elapsed_s': time.perf_counter() - started,
                         'status': 'failed',
                         'error': ('Upload deadline exceeded' if isinstance(error, TimeoutError)
                                   else str(error) or type(error).__name__),
                     }
                 result.update(progress, strategy=strategy,
-                              max_retries=max_retries if strategy == 'retry' else 0)
+                              max_retries=max_retries if strategy != 'basic' else 0,
+                              resume_chunk_bytes=resume_chunk_bytes)
                 result['proxy_ingress_bytes'] = proxy.ingress_bytes
                 result['forwarded_bytes'] = proxy.forwarded_bytes
                 result['phases'] = proxy.phases

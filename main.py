@@ -89,17 +89,7 @@ def main():
         'error': None,
     }
     if not args.simulate:
-        result.update(
-            proxy_ingress_bytes=upload['proxy_ingress_bytes'],
-            forwarded_bytes=upload['forwarded_bytes'], timeout_s=args.timeout_s,
-            phases=upload['phases'], events=upload['events'],
-            status=upload['status'], error=upload['error'],
-            strategy=upload['strategy'], max_retries=upload['max_retries'],
-            attempt_count=upload['attempt_count'], retry_count=upload['retry_count'],
-            confirmed_bytes=upload['confirmed_bytes'],
-            offset_probe_count=upload['offset_probe_count'],
-            resume_chunk_bytes=upload['resume_chunk_bytes'],
-        )
+        result.update(upload, timeout_s=args.timeout_s)
     if args.json:
         print(json.dumps(result, indent=2, allow_nan=False))
     else:
@@ -115,6 +105,8 @@ def main():
             print(f'Proxy body bandwidth: {bandwidth_kbps:g} kbps')
             print(f'Strategy: {result["strategy"]}; attempts: {result["attempt_count"]}; '
                   f'retries: {result["retry_count"]}')
+            print(f'SHA-256 integrity: {result["integrity"]}')
+            print(f'Repeated/discarded body bytes: {result["retransmission_bytes"]}')
         print(f'Elapsed: {elapsed:.3f} s')
         print(f'Status: {result["status"]}')
         if result['error']:

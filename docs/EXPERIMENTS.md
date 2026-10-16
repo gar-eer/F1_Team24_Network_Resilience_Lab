@@ -123,7 +123,8 @@ Probe failures count against the same retry budget and remain subject to outages
 
 - Confirm `mode` is `http` and `bandwidth_applied` is true.
 - Record the actual payload, rate, chunks, deadline, and phase schedule from JSON.
-- For completed uploads, check that `transferred_bytes` equals `payload_bytes`.
+- For completed uploads, check that `transferred_bytes` equals `payload_bytes`,
+  `integrity` is true, and the source and origin SHA-256 hashes match.
 - For interrupted full-file requests, `transferred_bytes` is zero because no full
   request was acknowledged; proxy ingress or forwarding counts may be nonzero.
 - Keep the failure reason and observed events for every failed trial.
@@ -131,8 +132,11 @@ Probe failures count against the same retry budget and remain subject to outages
   (`at`). Do not infer a restoration event merely from a future schedule entry.
 
 The reported counters exclude HTTP headers, TCP/IP overhead, and TCP
-retransmissions. Acknowledged size does not establish SHA-256 integrity or durable
-disk storage. Those measurements are not implemented at this milestone.
+retransmissions. Acknowledged size alone does not establish integrity; use the
+hash verification result. Durable disk storage and transport overhead are not
+measured. See [METRICS.md](METRICS.md) for final committed bytes, repeated work,
+useful throughput, and overhead percentage. The latter two remain null on failed
+or unverified trials.
 
 ## Report format
 

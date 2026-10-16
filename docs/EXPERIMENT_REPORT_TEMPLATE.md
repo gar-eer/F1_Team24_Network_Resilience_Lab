@@ -38,6 +38,9 @@ retry_count for each trial in its notes or additional columns. Link the raw JSON
 for each row.
 For Resumable, also record confirmed_bytes and offset_probe_count. Its request
 attempt count includes successful chunks and probes, unlike a full-file count.
+Record expected_sha256, actual_sha256, and integrity with each trial. A completed
+row must have matching hashes and integrity true. Retain null unavailable values
+for failed-trial useful throughput and overhead percentage.
 
 | Run ID | Scenario | Outcome | Elapsed (s) | Payload (bytes) | Acknowledged (bytes) | Proxy ingress (bytes) | Forwarded (bytes) | Exit code | Raw JSON |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -63,8 +66,8 @@ expected and whether the evidence matched it.]
 ## Limits and conclusion
 
 [Explain what the measurements answer and what remains unmeasured. At this
-milestone, hash integrity, TCP retransmissions, and wire overhead
-are unavailable. Avoid general reliability claims from a
+milestone, TCP retransmissions and wire overhead are unavailable. Hash integrity
+is checked for complete uploads. Avoid general reliability claims from a
 small set of local trials.]
 
 ## Reproduction

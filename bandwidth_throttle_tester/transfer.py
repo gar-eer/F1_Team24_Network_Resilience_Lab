@@ -1,13 +1,28 @@
 """Real localhost HTTP origin and upload clients."""
 import asyncio
+import hashlib
 import json
 import math
 import time
 
 from .throttler import BANDWIDTH_KBPS, validate_settings
+from .metrics import derive_metrics
 
 
 MAX_PAYLOAD_BYTES = 32 * 1024 * 1024
+
+
+class IntegrityError(RuntimeError):
+    """A complete body cannot be accepted without the expected origin hash."""
+
+    def __init__(self, actual_sha256):
+        self.actual_sha256 = actual_sha256 if isinstance(actual_sha256, str) else None
+        super().__init__('SHA-256 verification failed: origin hash missing or mismatching')
+
+
+def verify_sha256(expected, actual):
+    if actual != expected:
+        raise IntegrityError(actual)
 
 
 async def read_headers(reader):
@@ -24,8 +39,41 @@ class UploadOrigin:
         self.received = bytearray()
         self.timeout_s = timeout_s
         self.total_bytes = expected_bytes
+        self.tasks = set()
+        self.writers = set()
+
+    def digest(self):
+        if self.total_bytes is not None and len(self.received) == self.total_bytes:
+            return hashlib.sha256(self.received).hexdigest()
+        return None
 
     async def handle(self, reader, writer):
+        task = asyncio.current_task()
+        self.tasks.add(task)
+        self.writers.add(writer)
+        try:
+            await self._handle(reader, writer)
+        finally:
+            writer.close()
+            try:
+                await writer.wait_closed()
+            except ConnectionError:
+                pass
+            finally:
+                self.writers.discard(writer)
+                self.tasks.discard(task)
+
+    async def close(self):
+        for writer in list(self.writers):
+            writer.transport.abort()
+        tasks = list(self.tasks)
+        for task in tasks:
+            if not task.cancelling():
+                task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)
+
+    async def _handle(self, reader, writer):
         try:
             request, fields = await asyncio.wait_for(read_headers(reader), 5)
             if request == 'GET /offset HTTP/1.1':
@@ -58,6 +106,7 @@ class UploadOrigin:
                 else:
                     raise ValueError('Invalid upload endpoint')
                 value = {'received_bytes': len(body), 'offset': len(self.received)}
+            value['sha256'] = self.digest()
             status = '200 OK'
         except (ValueError, UnicodeError, asyncio.IncompleteReadError,
                 asyncio.LimitOverrunError, TimeoutError):
@@ -83,7 +132,8 @@ class UploadOrigin:
                 pass
 
 
-async def request_origin(port, method, path, body=b'', chunk_bytes=4096, extra_headers=None):
+async def request_origin(port, method, path, body=b'', chunk_bytes=4096, extra_headers=None,
+                         on_submit=None):
     """Exchange one HTTP request with an origin or the trial's proxy port."""
     if type(chunk_bytes) is not int or chunk_bytes <= 0:
         raise ValueError('chunk_bytes must be a positive integer')
@@ -95,7 +145,10 @@ async def request_origin(port, method, path, body=b'', chunk_bytes=4096, extra_h
             f'Content-Length: {len(body)}\r\n{extra}Connection: close\r\n\r\n'.encode()
         )
         for offset in range(0, len(body), chunk_bytes):
-            writer.write(body[offset:offset + chunk_bytes])
+            piece = body[offset:offset + chunk_bytes]
+            writer.write(piece)
+            if on_submit is not None:
+                on_submit(len(piece))
             await writer.drain()
         status, fields = await read_headers(reader)
         response = await reader.readexactly(int(fields['content-length']))
@@ -111,13 +164,17 @@ async def request_origin(port, method, path, body=b'', chunk_bytes=4096, extra_h
             pass
 
 
-async def upload_to_origin(payload, port, chunk_bytes=4096):
-    """Send a full file and require acknowledgement for the entire body."""
+async def upload_to_origin(payload, port, chunk_bytes=4096, on_submit=None):
+    """Send a full file and verify the independent origin's SHA-256."""
     started = time.perf_counter()
-    acknowledgement = await request_origin(port, 'POST', '/upload', payload, chunk_bytes)
+    acknowledgement = await request_origin(port, 'POST', '/upload', payload, chunk_bytes,
+                                           on_submit=on_submit)
     if acknowledgement.get('received_bytes') != len(payload):
         raise ValueError('Origin did not acknowledge the complete upload')
-    return {'transferred_bytes': len(payload), 'elapsed_s': time.perf_counter() - started}
+    actual = acknowledgement.get('sha256')
+    verify_sha256(hashlib.sha256(payload).hexdigest(), actual)
+    return {'transferred_bytes': len(payload), 'elapsed_s': time.perf_counter() - started,
+            'actual_sha256': actual}
 
 
 async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_KBPS,
@@ -139,6 +196,7 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
     if type(payload_bytes) is not int or not 0 < payload_bytes <= MAX_PAYLOAD_BYTES:
         raise ValueError('HTTP payload size must be between 1 byte and 32 MiB')
     payload = (bytes(range(256)) * ((payload_bytes + 255) // 256))[:payload_bytes]
+    expected_sha256 = hashlib.sha256(payload).hexdigest()
     origin = UploadOrigin(timeout_s, payload_bytes)
     server = await asyncio.start_server(origin.handle, '127.0.0.1', 0)
     async with server:
@@ -151,7 +209,17 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                 port = proxy_server.sockets[0].getsockname()[1]
                 started = time.perf_counter()
                 progress = {'attempt_count': 0, 'retry_count': 0,
-                            'confirmed_bytes': 0, 'offset_probe_count': 0}
+                            'confirmed_bytes': 0, 'offset_probe_count': 0,
+                            'client_submitted_bytes': 0, 'expected_sha256': expected_sha256,
+                            'actual_sha256': None, 'integrity': None}
+
+                def submitted(size):
+                    progress['client_submitted_bytes'] += size
+
+                def verify_complete(reply):
+                    progress['actual_sha256'] = reply.get('sha256')
+                    verify_sha256(expected_sha256, progress['actual_sha256'])
+                    progress['integrity'] = True
 
                 def record(kind, **details):
                     proxy.events.append({
@@ -178,8 +246,10 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                         record('upload_attempt', attempt=progress['attempt_count'])
                         try:
                             # Every attempt sends the identical full body from byte zero.
-                            result = await upload_to_origin(payload, port, chunk_bytes)
+                            result = await upload_to_origin(payload, port, chunk_bytes, submitted)
                             progress['confirmed_bytes'] = payload_bytes
+                            progress['actual_sha256'] = result['actual_sha256']
+                            progress['integrity'] = True
                             return result
                         except (OSError, ValueError, asyncio.IncompleteReadError) as error:
                             await recover(error)
@@ -204,6 +274,7 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                                 record('offset_confirmed', offset=offset)
                                 needs_probe = False
                                 if offset == payload_bytes:
+                                    verify_complete(reply)
                                     break
                             body = payload[offset:offset + resume_chunk_bytes]
                             progress['attempt_count'] += 1
@@ -212,6 +283,7 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                             reply = await request_origin(
                                 port, 'POST', '/chunk', body, chunk_bytes,
                                 {'X-Offset': offset, 'X-Total-Bytes': payload_bytes},
+                                on_submit=submitted,
                             )
                             if (reply.get('offset') != offset + len(body)
                                     or reply.get('received_bytes') != len(body)):
@@ -219,6 +291,8 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                             offset += len(body)
                             progress['confirmed_bytes'] = offset
                             record('chunk_committed', offset=offset, size_bytes=len(body))
+                            if offset == payload_bytes:
+                                verify_complete(reply)
                         except (OSError, ValueError, asyncio.IncompleteReadError) as error:
                             await recover(error)
                             needs_probe = True
@@ -232,6 +306,10 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                                   elapsed_s=time.perf_counter() - started)
                 except (OSError, TimeoutError, ValueError, RuntimeError,
                         asyncio.IncompleteReadError) as error:
+                    if isinstance(error, IntegrityError):
+                        progress['confirmed_bytes'] = payload_bytes
+                        progress['actual_sha256'] = error.actual_sha256
+                        progress['integrity'] = False if error.actual_sha256 is not None else None
                     result = {
                         'transferred_bytes': progress['confirmed_bytes'],
                         'elapsed_s': time.perf_counter() - started,
@@ -246,8 +324,10 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                 result['forwarded_bytes'] = proxy.forwarded_bytes
                 result['phases'] = proxy.phases
                 result['events'] = list(proxy.events)
-                return result
             finally:
                 # Close active connections before the server context waits
                 # for them; otherwise a paced transfer can outlive its deadline.
                 await proxy.close()
+                await origin.close()
+            result.update(derive_metrics(result, payload_bytes, len(origin.received)))
+            return result

@@ -12,8 +12,8 @@ A Python project for exploring how bandwidth limits affect data transfers.
 
 The initial simulator and real localhost HTTP upload engine are implemented.
 Bandwidth pacing, scheduled outages, and connection restoration are implemented.
-Basic, full-file Retry, and Resumable strategies are available. Hash verification
-and the dashboard will follow.
+Basic, full-file Retry, and Resumable strategies verify uploads using SHA-256.
+Recovery measurements, boundary experiments, and the dashboard will follow.
 
 ## Development status
 
@@ -61,6 +61,7 @@ output, exact received HTTP bodies, rate-dependent upload timing, aggregate
 pacing across concurrent connections, outage interruption, restoration, and
 deadline cleanup, full-file retries, committed chunks, offset probes, and shared
 retry budgets. Tests require permission to open local sockets.
+Integrity tests also detect corrupted origin data and missing final hashes.
 
 ## Configure a transfer
 
@@ -124,8 +125,18 @@ begins. Successful chunks and probes do not add retries or reset the budget;
 failed probes consume the same total budget. Reports include strategy, request
 attempts, retries, confirmed bytes, offset probes, and progress events.
 Retry and Resumable are available only in HTTP mode. Only Resumable preserves
-partial committed progress. Acknowledgement confirms bytes in memory; SHA-256
-integrity checks are not implemented yet.
+partial committed progress. Completion requires the origin's SHA-256 to match
+the independently hashed source payload. A missing or mismatching hash fails
+the trial, even if all bytes were received.
+
+## Integrity and measurements
+
+HTTP reports include source and origin hashes, integrity, client-submitted body
+bytes, proxy ingress, forwarded bytes, and final server-committed bytes.
+`retransmission_bytes` measures repeated/discarded application data, not TCP
+retransmissions. Useful throughput and overhead percentage are available only
+for verified successes; failed trials retain their counters and use null for
+those success-only metrics. See [metric definitions](docs/METRICS.md).
 
 Configure an outage directly with:
 

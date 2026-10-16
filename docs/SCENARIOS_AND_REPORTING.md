@@ -59,33 +59,41 @@ Paced HTTP uploads also include connection and acknowledgement overhead.
 | `retry_count` | Recovery operations actually begun after failure and backoff; successful chunks/probes add none |
 | `max_retries` | Effective total retry budget; zero for Basic |
 | `resume_chunk_bytes` | HTTP commit chunk size used only by Resumable; default 32 KiB |
-| `confirmed_bytes` | Latest contiguous origin offset confirmed by an acknowledgement or probe |
+| `confirmed_bytes` | Final contiguous committed origin bytes, inspected after connection cleanup |
 | `offset_probe_count` | Resumable offset requests actually begun, including failed probes |
 | `payload_bytes` | Requested transfer size |
 | `bandwidth_kbps` | Configured bandwidth limit |
 | `chunk_bytes` | Maximum application body write size, or simulation step size |
-| `transferred_bytes` | Confirmed bytes in HTTP mode, possibly partial on failed Resumable trials; simulated bytes otherwise |
+| `transferred_bytes` | Last client-acknowledged or probed byte count, possibly partial on failed Resumable trials; simulated bytes otherwise |
 | `proxy_ingress_bytes` | HTTP-only body bytes read by the proxy, excluding headers |
+| `bytes_sent` | Same measured value as proxy ingress bytes |
+| `client_submitted_bytes` | Body bytes submitted to the client socket, including buffered and repeated data |
 | `forwarded_bytes` | HTTP-only body bytes submitted by the proxy to the origin socket |
 | `timeout_s` | HTTP-only upload deadline, excluding service setup and cleanup |
 | `phases` | HTTP-only schedule of absolute `at` times and `kbps` limits |
 | `events` | Observed phase transitions with scheduled and actual elapsed times |
 | `elapsed_s` | Measured monotonic time from start to completion or terminal failure |
-| `status` | `completed` after full acknowledgement; `failed` after interruption or timeout |
+| `status` | `completed` after matching SHA-256; `failed` on terminal transfer or integrity error |
 | `error` | Null on completion, otherwise the failure reason |
+| `expected_sha256`, `actual_sha256`, `integrity` | Independent source/origin hashes and verification outcome |
+| `retransmission_bytes`, `overhead_percent`, `useful_kbps` | Derived application metrics; see metric definitions |
+| `transport_overhead` | Null: transport overhead is not measured |
+| `metric_definitions` | Machine-readable meanings of integrity and measured/derived metrics |
 
-HTTP acknowledgement confirms receipt of the full body by the local origin.
-It does not establish hash integrity, durable disk storage, or wire overhead.
-Simulation counts do not establish network delivery. Hash integrity checks
-belong to a later milestone. An interrupted
+HTTP completion now requires a matching source and origin SHA-256. This does
+not establish durable disk storage or wire overhead. Simulation counts do not
+establish network delivery. An interrupted
 full-file request receives no acknowledgement, so `transferred_bytes` remains
 zero even when the proxy has forwarded part of its body.
 
 Resumable commits contiguous complete HTTP chunks. The origin discards an
 incomplete chunk while preserving earlier committed data. A failed Resumable
 trial may report nonzero confirmed and transferred bytes without being completed.
-Confirmed progress can lag the origin if an acknowledgement is lost; the next
-offset probe reconciles that state.
+Client-acknowledged `transferred_bytes` can lag the origin if an acknowledgement
+is lost; the next offset probe reconciles that state. Final `confirmed_bytes`
+is inspected directly after cleanup. See [metric definitions](METRICS.md) for
+the distinction and formulas. A hash failure can retain a full committed body
+while still being failed, with no useful-throughput or overhead percentage.
 
 Invalid settings or unknown presets produce a command-line error with exit
 status 2 and no result on standard output. They are not counted as completed
@@ -133,3 +141,4 @@ same deadline and absolute phase schedule.
 6. Scheduled outages, restoration, and failed-transfer reports: implemented.
 7. Explicit Basic and full-file Retry strategies: implemented.
 8. Resumable uploads with committed-offset probes: implemented.
+9. SHA-256 verification and application transfer metrics: implemented.

@@ -89,3 +89,12 @@ probe committed offsets through the same proxy after failures, and continue at
 the confirmed offset. Keep retry budgets and deadlines global across chunks and
 probes. Report confirmed bytes, request attempts, and offset probes. Hash
 verification remains a separate milestone.
+
+## Integrity and metrics milestone — 16 October 2026
+
+Assign this reconstructed milestone to Sreerag Aneesh: require independently
+computed source and origin SHA-256 hashes to match before completion; reject
+missing or corrupt final hashes; measure client-submitted bytes and final origin
+commitment; derive repeated/discarded body work, verified useful throughput, and
+overhead percentage. Keep unavailable failure and transport metrics null and
+include metric definitions in JSON results.

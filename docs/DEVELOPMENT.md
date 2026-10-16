@@ -124,12 +124,27 @@ Only operations begun after failure/backoff add to `retry_count`. Tests check
 exact committed bytes, partial chunks, incorrect offsets, interruption recovery,
 probes during outages, and a shared retry budget across successful progress.
 
+## Integrity and metrics
+
+SHA-256 verification and derived transfer measurements are implemented. The
+origin hashes its complete committed buffer; each strategy verifies the returned
+digest against the original source before completion. Incomplete origins return
+no final hash. Missing or mismatching hashes are terminal integrity errors.
+Corruption tests alter bytes inside an actual origin and exercise all strategies
+over real sockets rather than mocking successful network responses.
+
+Client socket submissions and proxy body counters are measured separately.
+Origin and proxy handlers are cleaned up before inspecting final committed
+bytes. `metrics.py` derives repeated/discarded bytes, useful throughput, and
+overhead percentage and supplies the result's metric definitions. See
+[METRICS.md](METRICS.md) for availability rules and units.
+
 ## Planned milestones
 
 1. Implement the original bandwidth-limited transfer simulator.
 2. Add configurable scenarios, timing, and result reporting.
 3. Scheduled outages and restoration: implemented.
-4. Basic, Retry, and Resumable are implemented; add integrity checks and recovery metrics.
+4. Strategies and integrity checks are implemented; add recovery metrics.
 5. Validate networking behavior and document reproducible experiments.
 6. Build the frontend and result visualizations.
 7. Add light mode and remember the selected theme.

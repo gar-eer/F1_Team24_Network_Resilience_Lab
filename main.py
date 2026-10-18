@@ -9,13 +9,53 @@ from bandwidth_throttle_tester.throttler import (
     BANDWIDTH_KBPS, CHUNK_BYTES, PAYLOAD_BYTES, simulate_transfer, validate_settings,
 )
 from bandwidth_throttle_tester.transfer import run_upload
+from bandwidth_throttle_tester.experiments import run_boundary
+
+
+def comma_numbers(value):
+    try:
+        return [float(part.strip()) for part in value.split(',')]
+    except ValueError as error:
+        raise argparse.ArgumentTypeError('Use comma-separated numbers') from error
+
+
+def boundary_command(args, parser):
+    if (args.simulate or args.scenario is not None or args.bandwidth_kbps is not None
+            or args.outage_duration_s is not None):
+        parser.error('Boundary mode uses --bandwidths and --outages instead of a scenario')
+    if args.strategy is not None and args.strategies is not None:
+        parser.error('Select --strategy or --strategies, not both')
+    selected = args.strategies if args.strategies is not None else (
+        [args.strategy] if args.strategy is not None else None)
+    try:
+        report = asyncio.run(run_boundary(
+            args.size_bytes if args.size_bytes is not None else PAYLOAD_BYTES,
+            bandwidths=args.bandwidths, outages=args.outages, strategies=selected,
+            trials=args.trials, timeout_s=args.timeout_s,
+            outage_at_s=args.outage_at_s if args.outage_at_s is not None else 1,
+            chunk_bytes=args.chunk_bytes, resume_chunk_bytes=args.resume_chunk_bytes,
+            max_retries=args.max_retries,
+        ))
+    except ValueError as error:
+        parser.error(str(error))
+    except OSError as error:
+        parser.exit(1, f'Experiment setup failed: {error}\n')
+    if args.json:
+        print(json.dumps(report, indent=2, allow_nan=False))
+    else:
+        print(f'Boundary experiment completed: {report["total_trials"]} finished trials')
+        for cell in report['summaries']:
+            print(f'{cell["strategy"]}: {cell["bandwidth_kbps"]:g} kbps, '
+                  f'outage {cell["outage_s"]:g} s: '
+                  f'{cell["verified_successes"]}/{cell["finished_trials"]} verified')
+    return 0
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--simulate', action='store_true',
                         help='Use the earlier delay-based simulator instead of HTTP')
-    parser.add_argument('--strategy', choices=('basic', 'retry', 'resumable'), default='basic',
+    parser.add_argument('--strategy', choices=('basic', 'retry', 'resumable'),
                         help='HTTP upload strategy (default: basic)')
     parser.add_argument('--max-retries', type=int, default=5,
                         help='Total recovery retries for Retry/Resumable (default: 5)')
@@ -37,7 +77,23 @@ def main():
                         help='Seconds after trial start to disconnect the proxy')
     parser.add_argument('--outage-duration-s', type=float,
                         help='Positive outage duration in seconds')
+    parser.add_argument('--boundary', action='store_true',
+                        help='Run a serial bandwidth/outage failure-boundary sweep')
+    parser.add_argument('--bandwidths', type=comma_numbers,
+                        help='Boundary rates in decimal kbps (default: 256,512)')
+    parser.add_argument('--outages', type=comma_numbers,
+                        help='Boundary outage durations in seconds (default: 0,0.5)')
+    parser.add_argument('--strategies', type=lambda value: [part.strip() for part in value.split(',')],
+                        help='Boundary strategies (default: basic,retry,resumable)')
+    parser.add_argument('--trials', type=int, default=1,
+                        help='Boundary repeats per strategy and cell (default: 1)')
     args = parser.parse_args()
+    if args.boundary:
+        return boundary_command(args, parser)
+    if (args.bandwidths is not None or args.outages is not None
+            or args.strategies is not None or args.trials != 1):
+        parser.error('Sweep options require --boundary')
+    args.strategy = args.strategy or 'basic'
     preset = SCENARIOS.get(args.scenario, {})
     payload_bytes = (args.size_bytes if args.size_bytes is not None
                      else preset.get('payload_bytes', PAYLOAD_BYTES))

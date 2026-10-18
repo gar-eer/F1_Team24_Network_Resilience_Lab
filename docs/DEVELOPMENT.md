@@ -144,7 +144,7 @@ overhead percentage and supplies the result's metric definitions. See
 1. Implement the original bandwidth-limited transfer simulator.
 2. Add configurable scenarios, timing, and result reporting.
 3. Scheduled outages and restoration: implemented.
-4. Strategies and integrity checks are implemented; add recovery metrics.
+4. Strategies, integrity checks, recovery observations, and boundary sweeps are implemented.
 5. Validate networking behavior and document reproducible experiments.
 6. Build the frontend and result visualizations.
 7. Add light mode and remember the selected theme.

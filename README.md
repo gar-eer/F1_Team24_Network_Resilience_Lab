@@ -13,7 +13,8 @@ A Python project for exploring how bandwidth limits affect data transfers.
 The initial simulator and real localhost HTTP upload engine are implemented.
 Bandwidth pacing, scheduled outages, and connection restoration are implemented.
 Basic, full-file Retry, and Resumable strategies verify uploads using SHA-256.
-Recovery measurements, boundary experiments, and the dashboard will follow.
+Recovery measurements and serial failure-boundary sweeps are implemented.
+The dashboard will follow.
 
 ## Development status
 
@@ -157,6 +158,23 @@ Interrupted uploads and deadline failures produce a failed result, including
 observed events and byte counters, and exit with status 1. Completed uploads exit
 with status 0. A terminally failed trial stops its schedule, so future restoration events
 are not reported as observed.
+
+## Recovery and failure boundaries
+
+HTTP results include observed restorations and time to the first acknowledgement
+that increases confirmed progress. An observed restoration without later progress
+has a null recovery time; future scheduled restorations after trial termination
+are not reported as observed.
+
+```powershell
+python main.py --boundary --bandwidths 256,512 --outages 0,0.5 --trials 1 --resume-chunk-bytes 4096 --timeout-s 10 --json
+```
+
+Each bandwidth/outage/strategy trial starts with fresh services, data, clock,
+counters, and retry budget. Summaries include failures in the success-rate
+denominator and identify trials that actually experienced an outage. A completed
+sweep exits 0 even when some uploads fail. See the
+[boundary experiment guide](docs/BOUNDARY_EXPERIMENTS.md) for controls and limits.
 
 ## Structure
 

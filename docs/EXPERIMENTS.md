@@ -140,6 +140,11 @@ or unverified trials.
 
 ## Report format
 
+For a serial grid across rates and outage durations, use the
+[boundary experiment guide](BOUNDARY_EXPERIMENTS.md). It preserves each trial and
+reports per-cell success fractions, failed counts, observed-outage counts, and
+acknowledgement-based recovery measurements.
+
 Copy the [experiment report template](EXPERIMENT_REPORT_TEMPLATE.md), then fill
 it using saved JSON rather than estimated timings. Keep one summary row per
 trial and preserve the complete JSON as the source record. Use paths relative

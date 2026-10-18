@@ -10,7 +10,24 @@ METRICS = {
     'useful_kbps': 'Payload bytes * 8 / elapsed seconds / 1000, on hash-verified success only.',
     'integrity': 'True for matching SHA-256, false for a mismatching returned hash, null when unavailable.',
     'transport_overhead': 'Unavailable: TCP/IP headers, TCP retransmissions and actual wire overhead are not measured.',
+    'recovery_s': 'Seconds from scheduled restoration to the first subsequent acknowledgement increasing confirmed progress; null if unobserved.',
+    'success_rate': 'Hash-verified successes divided by finished trials in one strategy, bandwidth, and outage cell.',
 }
+
+
+def recovery_observations(events):
+    """Measure only observed restoration and increasing client acknowledgements."""
+    observations = []
+    confirmed = 0
+    for event in events:
+        if event['kind'] == 'restored':
+            observations.append({'restored_at': event['scheduled_at'], 'recovery_s': None})
+        elif event['kind'] == 'progress' and event['confirmed_bytes'] > confirmed:
+            confirmed = event['confirmed_bytes']
+            for observation in observations:
+                if observation['recovery_s'] is None:
+                    observation['recovery_s'] = event['at'] - observation['restored_at']
+    return observations
 
 
 def derive_metrics(result, payload_bytes, committed_bytes):
@@ -24,5 +41,6 @@ def derive_metrics(result, payload_bytes, committed_bytes):
         'overhead_percent': 100 * repeated / payload_bytes if verified else None,
         'useful_kbps': payload_bytes * 8 / result['elapsed_s'] / 1000 if verified else None,
         'transport_overhead': None,
+        'recoveries': recovery_observations(result['events']),
         'metric_definitions': dict(METRICS),
     }

@@ -48,6 +48,21 @@ null useful throughput and overhead percentage rather than misleading zeroes.
 Repeated/discarded bytes can still be measured on failure. That value does not
 measure TCP retransmissions, packet loss, or transport overhead.
 
+## Recovery and success rates
+
+`recoveries[].restored_at` is an observed restoration's scheduled time.
+`recoveries[].recovery_s` is the time from there to the first subsequent
+acknowledgement that increases confirmed bytes. The `progress` event trace
+records those client acknowledgements. An unchanged probe does not qualify.
+Backoff and request overhead are included. Null means an observed restoration
+had no later progress; no entry means restoration was not observed at all.
+
+Boundary `success_rate` is verified successes divided by finished trials in the
+same strategy/rate/outage cell. Failed trials stay in the denominator. A fraction
+of 1 describes only that tested cell and sample, not a general reliability
+guarantee. Check observed-outage counts to identify uploads that finished before
+the disruption. See [boundary experiments](BOUNDARY_EXPERIMENTS.md).
+
 ## Comparison
 
 Compare useful throughput and overhead only among verified successes with their

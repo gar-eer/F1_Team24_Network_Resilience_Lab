@@ -12,6 +12,16 @@ SCENARIOS = {
 }
 
 
+def number(value, name, low, high, integer=False):
+    """Validate finite bounded experiment inputs before starting any trials."""
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not math.isfinite(value)):
+        raise ValueError(f'{name} must be a finite number')
+    if not low <= value <= high or integer and int(value) != value:
+        raise ValueError(f'{name} must be {"an integer " if integer else ""}between {low} and {high}')
+    return int(value) if integer else value
+
+
 def validate_phases(phases):
     """Copy a finite, chronological schedule; zero kbps means offline."""
     if not isinstance(phases, list) or not phases:

@@ -164,13 +164,15 @@ async def request_origin(port, method, path, body=b'', chunk_bytes=4096, extra_h
             pass
 
 
-async def upload_to_origin(payload, port, chunk_bytes=4096, on_submit=None):
+async def upload_to_origin(payload, port, chunk_bytes=4096, on_submit=None, on_ack=None):
     """Send a full file and verify the independent origin's SHA-256."""
     started = time.perf_counter()
     acknowledgement = await request_origin(port, 'POST', '/upload', payload, chunk_bytes,
                                            on_submit=on_submit)
     if acknowledgement.get('received_bytes') != len(payload):
         raise ValueError('Origin did not acknowledge the complete upload')
+    if on_ack is not None:
+        on_ack(len(payload))
     actual = acknowledgement.get('sha256')
     verify_sha256(hashlib.sha256(payload).hexdigest(), actual)
     return {'transferred_bytes': len(payload), 'elapsed_s': time.perf_counter() - started,
@@ -226,6 +228,12 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                         'at': time.monotonic() - proxy.started, 'kind': kind, **details,
                     })
 
+                def acknowledge(offset):
+                    previous = progress['confirmed_bytes']
+                    progress['confirmed_bytes'] = offset
+                    if offset > previous:
+                        record('progress', confirmed_bytes=offset)
+
                 async def recover(error):
                     reason = str(error) or type(error).__name__
                     record('attempt_failed', attempt=progress['attempt_count'], error=reason)
@@ -246,8 +254,8 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                         record('upload_attempt', attempt=progress['attempt_count'])
                         try:
                             # Every attempt sends the identical full body from byte zero.
-                            result = await upload_to_origin(payload, port, chunk_bytes, submitted)
-                            progress['confirmed_bytes'] = payload_bytes
+                            result = await upload_to_origin(payload, port, chunk_bytes,
+                                                            submitted, acknowledge)
                             progress['actual_sha256'] = result['actual_sha256']
                             progress['integrity'] = True
                             return result
@@ -270,7 +278,7 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                                         or not progress['confirmed_bytes'] <= committed <= payload_bytes):
                                     raise ValueError('Invalid committed offset from origin')
                                 offset = committed
-                                progress['confirmed_bytes'] = offset
+                                acknowledge(offset)
                                 record('offset_confirmed', offset=offset)
                                 needs_probe = False
                                 if offset == payload_bytes:
@@ -289,7 +297,7 @@ async def run_upload(payload_bytes, chunk_bytes=4096, bandwidth_kbps=BANDWIDTH_K
                                     or reply.get('received_bytes') != len(body)):
                                 raise ValueError('Origin did not acknowledge the complete chunk')
                             offset += len(body)
-                            progress['confirmed_bytes'] = offset
+                            acknowledge(offset)
                             record('chunk_committed', offset=offset, size_bytes=len(body))
                             if offset == payload_bytes:
                                 verify_complete(reply)

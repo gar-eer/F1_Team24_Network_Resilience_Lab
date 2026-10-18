@@ -98,3 +98,12 @@ missing or corrupt final hashes; measure client-submitted bytes and final origin
 commitment; derive repeated/discarded body work, verified useful throughput, and
 overhead percentage. Keep unavailable failure and transport metrics null and
 include metric definitions in JSON results.
+
+## Recovery and boundary milestone — 18 October 2026
+
+Assign this reconstructed milestone to Sreerag Aneesh: record increasing client
+acknowledgements and measure observed recovery from scheduled restoration;
+preserve null recovery when no later progress is observed. Add a serial
+bandwidth/outage grid with fresh trial services and counters, global deadlines
+and retry budgets, raw results, observed-outage flags, and per-cell verified
+success rates that retain failed outcomes in their denominators.

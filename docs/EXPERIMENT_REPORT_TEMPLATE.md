@@ -55,6 +55,11 @@ with reasons; do not silently discard them.]
 
 ## Comparison
 
+[For boundary experiments, identify each bandwidth/outage/strategy cell and
+record observed_outage_trials alongside finished trials. Record observed
+restorations and recovery times; distinguish null recovery from an unobserved
+restoration, and do not replace either with zero.]
+
 | Scenario and strategy | Valid trials | Completed | Failed | Completion fraction | Completed duration range (s) | Failed duration range (s) |
 | --- | --- | --- | --- | --- | --- | --- |
 | [scenario / strategy] | [count] | [count] | [count] | [completed / valid trials] | [observed range or unavailable] | [observed range or unavailable] |

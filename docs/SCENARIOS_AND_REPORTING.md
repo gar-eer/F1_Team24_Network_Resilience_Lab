@@ -79,6 +79,7 @@ Paced HTTP uploads also include connection and acknowledgement overhead.
 | `retransmission_bytes`, `overhead_percent`, `useful_kbps` | Derived application metrics; see metric definitions |
 | `transport_overhead` | Null: transport overhead is not measured |
 | `metric_definitions` | Machine-readable meanings of integrity and measured/derived metrics |
+| `recoveries` | Observed restorations and time to the first increasing acknowledgement, or null time if unobserved |
 
 HTTP completion now requires a matching source and origin SHA-256. This does
 not establish durable disk storage or wire overhead. Simulation counts do not
@@ -131,6 +132,13 @@ acknowledged offset. Its `attempt_count` includes chunks and probes, so it is
 not a cross-strategy count of full-file attempts. All retries remain inside the
 same deadline and absolute phase schedule.
 
+Increasing client acknowledgements also create `progress` events. These drive
+recovery observations; neither forwarded body bytes nor an unchanged probe
+indicates recovered progress. The boundary runner aggregates verified successes
+over finished trials independently for every tested strategy/rate/outage cell.
+See [boundary experiments](BOUNDARY_EXPERIMENTS.md) for sweep configuration,
+observation rules, and export fields.
+
 ## Implementation milestones
 
 1. Fixed-default simulator: implemented.
@@ -142,3 +150,4 @@ same deadline and absolute phase schedule.
 7. Explicit Basic and full-file Retry strategies: implemented.
 8. Resumable uploads with committed-offset probes: implemented.
 9. SHA-256 verification and application transfer metrics: implemented.
+10. Recovery observations and failure-boundary experiments: implemented.

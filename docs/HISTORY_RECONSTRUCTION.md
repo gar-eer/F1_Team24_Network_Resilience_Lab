@@ -107,3 +107,11 @@ preserve null recovery when no later progress is observed. Add a serial
 bandwidth/outage grid with fresh trial services and counters, global deadlines
 and retry budgets, raw results, observed-outage flags, and per-cell verified
 success rates that retain failed outcomes in their denominators.
+
+## Network cleanup milestone — 20 October 2026
+
+Consolidate the prototype into the original trial/service architecture, with shared
+pacing credit, cancellation-preserving bounded socket close, real per-request
+delay, and explicit resource cleanup. Retire the earlier CLI and its obsolete
+modules/tests. This makes the backend source match the original project while
+frontend assets remain scheduled for later milestones.

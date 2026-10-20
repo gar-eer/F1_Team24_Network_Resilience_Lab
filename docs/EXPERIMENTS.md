@@ -1,3 +1,5 @@
+> Historical prototype guide through 18 October. The current backend uses the trial/service API; this guide will be updated with the release documentation.
+
 # Running and reporting experiments
 
 This guide covers Basic, full-file Retry, and Resumable HTTP strategies.

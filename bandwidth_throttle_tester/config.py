@@ -1,63 +1,52 @@
-"""Named constant-rate presets for the initial transfer simulator."""
-import json
+"""Validated, exportable experiment configuration. Rates use decimal kbps."""
 import math
-from pathlib import Path
 
-
-# Resolve bundled examples independently of the shell's working directory.
-PRESET_FILE = Path(__file__).resolve().parents[1] / 'examples' / 'scenarios.json'
+STRATEGIES = ('basic', 'retry', 'resumable')
 SCENARIOS = {
-    scenario['id']: scenario
-    for scenario in json.loads(PRESET_FILE.read_text(encoding='utf-8'))['scenarios']
+    'stable': [{'at': 0, 'kbps': 2048}],
+    'low': [{'at': 0, 'kbps': 256}],
+    'drop': [{'at': 0, 'kbps': 2048}, {'at': 2, 'kbps': 256}],
+    'outage': [{'at': 0, 'kbps': 2048}, {'at': 2, 'kbps': 0}, {'at': 7, 'kbps': 2048}],
+    'intermittent': [{'at': 0, 'kbps': 2048}, {'at': 2, 'kbps': 0},
+                     {'at': 4, 'kbps': 2048}, {'at': 6, 'kbps': 0}, {'at': 8, 'kbps': 2048}],
+    'demo': [{'at': 0, 'kbps': 2000}, {'at': 3, 'kbps': 256},
+             {'at': 7, 'kbps': 0}, {'at': 12, 'kbps': 2000}],
 }
 
-
 def number(value, name, low, high, integer=False):
-    """Validate finite bounded experiment inputs before starting any trials."""
-    if (isinstance(value, bool) or not isinstance(value, (int, float))
-            or not math.isfinite(value)):
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
         raise ValueError(f'{name} must be a finite number')
-    if not low <= value <= high or integer and int(value) != value:
+    if not low <= value <= high or (integer and int(value) != value):
         raise ValueError(f'{name} must be {"an integer " if integer else ""}between {low} and {high}')
     return int(value) if integer else value
 
-
-def validate_phases(phases):
-    """Copy a finite, chronological schedule; zero kbps means offline."""
-    if not isinstance(phases, list) or not phases:
-        raise ValueError('Phase schedule must be a nonempty list')
-    normalized = []
+def validate(raw):
+    if not isinstance(raw, dict):
+        raise ValueError('Configuration must be an object')
+    scenario = raw.get('scenario', 'demo')
+    if scenario not in SCENARIOS and scenario != 'custom':
+        raise ValueError('Unknown scenario')
+    strategies = raw.get('strategies', list(STRATEGIES))
+    if not isinstance(strategies, list) or not strategies or any(s not in STRATEGIES for s in strategies) or len(set(strategies)) != len(strategies):
+        raise ValueError('Select unique upload strategies')
+    phases = raw.get('phases', SCENARIOS.get(scenario))
+    if not isinstance(phases, list) or not 1 <= len(phases) <= 20:
+        raise ValueError('Provide 1-20 network phases')
+    clean = []
     for phase in phases:
-        if not isinstance(phase, dict) or not {'at', 'kbps'} <= phase.keys():
-            raise ValueError('Each phase requires at and kbps')
-        for key in ('at', 'kbps'):
-            value = phase[key]
-            if (isinstance(value, bool) or not isinstance(value, (int, float))
-                    or not math.isfinite(value) or value < 0):
-                raise ValueError('Phase times and rates must be finite and nonnegative')
-        if not normalized and phase['at'] != 0:
-            raise ValueError('Phase schedule must start at zero')
-        if normalized and phase['at'] <= normalized[-1]['at']:
-            raise ValueError('Phase times must strictly increase')
-        normalized.append({'at': phase['at'], 'kbps': phase['kbps']})
-    return normalized
-
-
-def build_phases(bandwidth_kbps, outage_at_s=None, outage_duration_s=None):
-    """Build a constant-rate schedule with an optional single outage."""
-    if outage_at_s is None and outage_duration_s is None:
-        return validate_phases([{'at': 0, 'kbps': bandwidth_kbps}])
-    if outage_at_s is None or outage_duration_s is None:
-        raise ValueError('Specify both outage start and duration')
-    for value in (outage_at_s, outage_duration_s):
-        if (isinstance(value, bool) or not isinstance(value, (int, float))
-                or not math.isfinite(value) or value < 0):
-            raise ValueError('Outage settings must be finite and nonnegative')
-    if outage_duration_s == 0:
-        raise ValueError('Outage duration must be positive')
-    phases = [] if outage_at_s == 0 else [{'at': 0, 'kbps': bandwidth_kbps}]
-    phases.extend([
-        {'at': outage_at_s, 'kbps': 0},
-        {'at': outage_at_s + outage_duration_s, 'kbps': bandwidth_kbps},
-    ])
-    return validate_phases(phases)
+        if not isinstance(phase, dict):
+            raise ValueError('Each phase must be an object')
+        at = number(phase.get('at'), 'Phase time', 0, 3600)
+        kbps = number(phase.get('kbps'), 'Bandwidth', 0, 100000)
+        if (not clean and at != 0) or (clean and at <= clean[-1]['at']):
+            raise ValueError('Phases must start at zero and increase strictly')
+        clean.append({'at': at, 'kbps': kbps})
+    return {
+        'scenario': scenario, 'strategies': strategies, 'phases': clean,
+        'size_bytes': number(raw.get('size_bytes', 2 * 1024**2), 'Payload bytes', 1024, 32 * 1024**2, True),
+        'trials': number(raw.get('trials', 1), 'Trials', 1, 10, True),
+        'delay_ms': number(raw.get('delay_ms', 20), 'Delay', 0, 2000),
+        'deadline_s': number(raw.get('deadline_s', 120), 'Deadline', .1, 3600),
+        'max_retries': number(raw.get('max_retries', 12), 'Retries', 0, 30, True),
+        'chunk_bytes': number(raw.get('chunk_bytes', 32768), 'Chunk bytes', 1024, 262144, True),
+    }

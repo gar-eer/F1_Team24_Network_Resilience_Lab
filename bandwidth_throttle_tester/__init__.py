@@ -1,1 +1,1 @@
-"""Tools for exploring bandwidth-limited data transfers."""
+"""Network Resilience Lab: actual local upload experiments."""

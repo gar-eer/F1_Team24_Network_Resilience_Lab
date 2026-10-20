@@ -1,55 +1,20 @@
-# Bandwidth Throttle Tester
+# Network Resilience Lab
 
-A Python project for exploring how bandwidth limits affect data transfers.
+The networking engine now uses the final trial-based architecture: real localhost
+HTTP uploads, a shared body-pacing scheduler, bounded socket cleanup, preserved
+cancellation, hash verification, retry/resume strategies, and measured recovery.
 
-## Objectives
+## Run the backend
 
-- Build an initial transfer simulator with configurable bandwidth limits.
-- Measure transfer duration and report results for repeatable scenarios.
-- Extend the simulator into real local HTTP transfers with controlled outages.
-- Compare basic, retry, and resumable upload strategies.
-- Add a web dashboard after the networking and measurements are established.
-
-The initial simulator and real localhost HTTP upload engine are implemented.
-Bandwidth pacing, scheduled outages, and connection restoration are implemented.
-Basic, full-file Retry, and Resumable strategies verify uploads using SHA-256.
-Recovery measurements and serial failure-boundary sweeps are implemented.
-The dashboard will follow.
-
-## Development status
-
-The default command uploads a deterministic payload through a bandwidth-limited
-proxy to a temporary HTTP origin. Both bind to `127.0.0.1` on automatically
-assigned ports and use real TCP sockets. The origin stores the body in memory.
-HTTP payloads are limited to 32 MiB.
-
-The proxy paces upload bodies in slices of up to 4 KiB using one shared allowance
-across connections. Headers and responses are not rate-limited. Reports include
-proxy ingress, forwarded body bytes, origin-acknowledged bytes, and elapsed time.
-This measures application body delivery, not TCP wire traffic or packet loss.
-The earlier delay-based simulator remains available with `--simulate`.
-
-## Requirements
-
-- Python 3.11 or newer
-- No third-party dependencies at this stage
-
-## Local setup
-
-From the repository directory in PowerShell:
+Requires Python 3.11 or newer, with no third-party packages.
 
 ```powershell
-python --version
-python -m venv .venv
-.\.venv\Scripts\python.exe main.py
+python main.py
 ```
 
-The HTTP origin exists only for the command's duration. There is no dashboard
-or internet dependency. See the [development guide](docs/DEVELOPMENT.md).
-
-For repeatable scenario comparisons, follow the
-[experiment guide](docs/EXPERIMENTS.md) and use the
-[report template](docs/EXPERIMENT_REPORT_TEMPLATE.md).
+The service binds to `127.0.0.1:8765`. Metadata is available at `/api/meta` and
+experiments at `/api/experiments`. The browser frontend arrives in a later
+milestone; the root page is not available yet.
 
 ## Validation
 
@@ -57,133 +22,11 @@ For repeatable scenario comparisons, follow the
 python -m unittest discover -v
 ```
 
-The tests check custom settings, partial chunks, invalid input, command-line
-output, exact received HTTP bodies, rate-dependent upload timing, aggregate
-pacing across concurrent connections, outage interruption, restoration, and
-deadline cleanup, full-file retries, committed chunks, offset probes, and shared
-retry budgets. Tests require permission to open local sockets.
-Integrity tests also detect corrupted origin data and missing final hashes.
+The engine regression tests check shared pacing across simultaneous connections
+and cancellation of a large buffered upload.
 
-## Configure a transfer
+## Development provenance
 
-```powershell
-python main.py --size-bytes 131072 --bandwidth-kbps 256 --chunk-bytes 4096
-python main.py --simulate --size-bytes 131072 --bandwidth-kbps 256
-python main.py --help
-```
-
-Sizes must be positive integers. Bandwidth must be a positive finite number in
-decimal kbps. The simulation example has a theoretical duration of 4.096 seconds
-plus scheduling overhead. The paced HTTP upload includes socket, forwarding,
-and acknowledgement overhead as well. The default HTTP deadline is 120 seconds;
-use `--timeout-s` to change it. It must be a positive finite number and applies
-to the upload, excluding service setup and cleanup. Deadline failures exit with
-status 1; invalid settings exit with status 2.
-
-## Scenario presets and results
-
-```powershell
-python main.py --scenario baseline
-python main.py --scenario low-bandwidth --json
-python main.py --scenario baseline --size-bytes 8193 --bandwidth-kbps 256
-python main.py --scenario outage --json
-```
-
-Presets are defined in [examples/scenarios.json](examples/scenarios.json).
-`baseline` uses 512 kbps and `low-bandwidth` uses 256 kbps; both use 64 KiB
-payloads. Rates affect simulation timing and real proxy body forwarding.
-Explicit command-line settings override preset values. With no preset,
-the result's scenario identifier is `custom` and the usual defaults apply.
-
-The `outage` preset uses 64 KiB at 256 kbps, disconnects at 0.25 seconds, and
-schedules restoration at 1.25 seconds. Basic is the default strategy: it fails
-on interruption and ends its trial immediately. Retry can keep the same trial
-alive and send the full body again after restoration.
-
-## Upload strategies
-
-```powershell
-python main.py --scenario outage --strategy basic --json
-python main.py --scenario outage --strategy retry --max-retries 5 --json
-python main.py --scenario outage --strategy resumable --resume-chunk-bytes 4096 --json
-```
-
-- **Basic:** one full-file attempt; no automatic retry.
-- **Retry:** resend the identical full file from byte zero after a failure.
-  Backoff is 0.25, 0.5, 1, then 2 seconds, capped at 2 seconds thereafter.
-  `--max-retries` is the total number of additional attempts allowed per trial;
-  zero permits only the initial attempt. The default budget is five retries.
-- **Resumable:** send sequential HTTP chunks and retain the origin's committed
-  offset. After failure and backoff, query that offset through the same proxy,
-  then continue from it. An incomplete chunk is discarded; complete chunks stay
-  committed in the running origin's memory. `--resume-chunk-bytes` controls HTTP
-  commit size (default 32 KiB), while `--chunk-bytes` controls socket write size.
-
-Retry and Resumable use the original absolute outage schedule and shared proxy
-allowance. The deadline covers all attempts and backoff, not each attempt
-separately. Retry count increases only when another recovery operation actually
-begins. Successful chunks and probes do not add retries or reset the budget;
-failed probes consume the same total budget. Reports include strategy, request
-attempts, retries, confirmed bytes, offset probes, and progress events.
-Retry and Resumable are available only in HTTP mode. Only Resumable preserves
-partial committed progress. Completion requires the origin's SHA-256 to match
-the independently hashed source payload. A missing or mismatching hash fails
-the trial, even if all bytes were received.
-
-## Integrity and measurements
-
-HTTP reports include source and origin hashes, integrity, client-submitted body
-bytes, proxy ingress, forwarded bytes, and final server-committed bytes.
-`retransmission_bytes` measures repeated/discarded application data, not TCP
-retransmissions. Useful throughput and overhead percentage are available only
-for verified successes; failed trials retain their counters and use null for
-those success-only metrics. See [metric definitions](docs/METRICS.md).
-
-Configure an outage directly with:
-
-```powershell
-python main.py --outage-at-s 0.25 --outage-duration-s 1 --json
-```
-
-Supply both options, with a nonnegative start and a positive duration. They use
-absolute seconds from the proxy trial's start. Outage schedules require HTTP
-mode. During an outage, active proxy connections are aborted and new connections
-are rejected. Incomplete request bodies are not committed by the origin.
-
-Text output includes the scenario, transfer size, bandwidth, elapsed time, and
-completion status. `--json` prints only a structured result that can be saved
-with shell redirection. Invalid inputs exit with an error instead of producing
-a result. See [scenario and result definitions](docs/SCENARIOS_AND_REPORTING.md).
-Interrupted uploads and deadline failures produce a failed result, including
-observed events and byte counters, and exit with status 1. Completed uploads exit
-with status 0. A terminally failed trial stops its schedule, so future restoration events
-are not reported as observed.
-
-## Recovery and failure boundaries
-
-HTTP results include observed restorations and time to the first acknowledgement
-that increases confirmed progress. An observed restoration without later progress
-has a null recovery time; future scheduled restorations after trial termination
-are not reported as observed.
-
-```powershell
-python main.py --boundary --bandwidths 256,512 --outages 0,0.5 --trials 1 --resume-chunk-bytes 4096 --timeout-s 10 --json
-```
-
-Each bandwidth/outage/strategy trial starts with fresh services, data, clock,
-counters, and retry budget. Summaries include failures in the success-rate
-denominator and identify trials that actually experienced an outage. A completed
-sweep exits 0 even when some uploads fail. See the
-[boundary experiment guide](docs/BOUNDARY_EXPERIMENTS.md) for controls and limits.
-
-## Structure
-
-```text
-main.py                     Command-line entry point
-bandwidth_throttle_tester/   Python package
-docs/                       Development notes
-tests/                      Simulation, reporting, and HTTP tests
-```
-
-See [history reconstruction notes](docs/HISTORY_RECONSTRUCTION.md) for the
-provenance of this repository's development timeline.
+This is a reconstructed timeline, not verified historical activity. See
+[history notes](docs/HISTORY_RECONSTRUCTION.md). Earlier command-line guides
+describe the retired prototype, not the current service entry point.

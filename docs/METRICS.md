@@ -1,3 +1,5 @@
+> Historical prototype guide through 18 October. The current backend uses the trial/service API; this guide will be updated with the release documentation.
+
 # Transfer metrics and integrity
 
 These definitions apply to real HTTP trials. The delay-based simulator is a

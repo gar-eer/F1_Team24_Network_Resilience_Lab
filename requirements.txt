@@ -1,1 +1,1 @@
-# Initial foundation uses only the Python standard library.
+# Python 3.11+; no third-party packages required.

@@ -1,3 +1,5 @@
+> Historical prototype guide through 18 October. The current backend uses the trial/service API; this guide will be updated with the release documentation.
+
 # Scenario configuration and transfer reporting
 
 For collection commands and a consistent report format, see the

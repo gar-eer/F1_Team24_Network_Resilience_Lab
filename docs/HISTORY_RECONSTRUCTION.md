@@ -115,3 +115,10 @@ pacing credit, cancellation-preserving bounded socket close, real per-request
 delay, and explicit resource cleanup. Retire the earlier CLI and its obsolete
 modules/tests. This makes the backend source match the original project while
 frontend assets remain scheduled for later milestones.
+
+## Networking validation milestone — 21 October 2026
+
+Add the original networking and scheduler integration suite plus the full recovery
+demo. The static root-page assertion is introduced when the frontend lands.
+Measurements are collected on the actual execution date, independently of the
+reconstructed Git milestone date.

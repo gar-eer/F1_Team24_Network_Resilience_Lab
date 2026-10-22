@@ -1,73 +1,33 @@
-> Historical prototype guide through 18 October. The current backend uses the trial/service API; this guide will be updated with the release documentation.
+# Metric definitions
 
-# Transfer metrics and integrity
+These contracts come from the current engine's exported metadata.
 
-These definitions apply to real HTTP trials. The delay-based simulator is a
-separate mode and does not verify network delivery or origin integrity.
-JSON results include machine-readable `metric_definitions` from `metrics.py`.
-
-## Verified completion
-
-The client hashes the original deterministic payload independently of the origin.
-The origin returns SHA-256 only after its committed body has the complete expected
-size. Full-file acknowledgements, final chunk acknowledgements, and complete-file
-offset probes can carry the hash. Completion requires the returned hash to match
-the source hash. A mismatch is terminal for every strategy and is not retried.
-
-| Field | Meaning |
+| Metric | Meaning |
 | --- | --- |
-| `expected_sha256` | SHA-256 of the original source payload |
-| `actual_sha256` | Origin-returned hash of the complete committed body; null if unavailable |
-| `integrity` | True for matching hashes, false for a returned mismatch, null if no final hash is available |
-| `status` | Completed only after hash verification; failed on interruption, deadline, budget exhaustion, missing hash, or mismatch |
+| `elapsed_s` | Monotonic seconds from trial start through hash verification or terminal error. |
+| `bytes_sent` | Upload body bytes read at proxy ingress, including repeated and discarded bytes. Excludes HTTP headers and unread OS buffers. |
+| `client_submitted_bytes` | Body bytes submitted by the client to its socket; may include buffered bytes never read by the proxy. |
+| `forwarded_bytes` | Body bytes submitted by the proxy to the origin socket; excludes headers. Not a wire-level measurement. |
+| `confirmed_bytes` | Server-confirmed contiguous committed payload bytes. Full uploads and resumable chunks commit atomically. |
+| `retransmission_bytes` | max(0, proxy ingress bytes minus final origin committed unique bytes). Repeated/discarded application work, including failed partial bodies. |
+| `overhead_percent` | 100 * retransmission_bytes / payload bytes; available for verified successes only. |
+| `useful_kbps` | Verified payload bytes * 8 / elapsed seconds / 1000 on success; unavailable on failure. |
+| `recovery_s` | Per restored phase: seconds from scheduled restoration to first subsequent acknowledgement that increases confirmed bytes; null when unobserved. |
+| `retry_count` | Additional upload attempts begun after failure. Offset probes and successful chunks are not retries. |
+| `success_rate` | Verified successes / completed trials in the same strategy/configuration cell. Cancelled trials excluded. |
+| `integrity` | SHA-256 of original payload compared with SHA-256 of committed origin bytes; null unless a complete file is verified. |
+| `transport_overhead` | Unavailable: TCP/IP headers, packet loss and TCP retransmissions are not measured. |
 
-A hash mismatch can occur after the entire body has been committed. Nonzero
-or complete byte counts alone must not be interpreted as verified success.
+The origin commits complete full-file requests or sequential chunks in memory.
+The client verifies the independently computed SHA-256 before marking completion.
+Integrity is true for a match, false for a mismatch, and null when unavailable.
+Useful throughput and overhead percentage are unavailable for failed or cancelled
+trials. JSON uses null, CSV leaves unavailable scalar values blank, and the UI
+shows an em dash. These are application-body observations, not wire measurements.
 
-## Body counters and derived values
+Recovery starts at the scheduled restoration time and ends at the first later
+acknowledgement increasing confirmed bytes. An unchanged offset probe does not
+count. An observed restoration without progress has null recovery; a restoration
+after trial termination is unobserved. Backoff and per-request delay are included.
 
-| Field | Definition |
-| --- | --- |
-| `client_submitted_bytes` | Body bytes passed to the client's socket writes, including retries; excludes headers |
-| `bytes_sent` | Body bytes actually read at proxy ingress, including partial and repeated requests |
-| `proxy_ingress_bytes` | Compatibility name for the same observation as `bytes_sent` |
-| `forwarded_bytes` | Body bytes submitted by the proxy to its origin socket |
-| `confirmed_bytes` | Final contiguous committed origin bytes, inspected after active connections are cleaned up |
-| `transferred_bytes` | Last contiguous byte count acknowledged or probed by the client; may lag final origin state after a lost acknowledgement |
-| `retransmission_bytes` | `max(0, bytes_sent - confirmed_bytes)`; application-level repeated or discarded work |
-| `overhead_percent` | `100 * retransmission_bytes / payload_bytes`, available only on verified success |
-| `useful_kbps` | `payload_bytes * 8 / elapsed_s / 1000`, available only on verified success |
-| `elapsed_s` | Monotonic time through verification or terminal error, including failures, probes, and backoff; excludes service setup and cleanup |
-| `transport_overhead` | Null: TCP/IP headers, TCP retransmissions, and wire overhead are not measured |
-
-The client can submit buffered bytes that never reach the proxy. Forwarding to a
-socket does not by itself establish origin commitment. The origin commits full
-requests or contiguous complete chunks atomically in memory; this is not durable
-disk storage. All counters above exclude HTTP headers.
-
-Failed uploads retain their measured counters. Failed or unverified trials have
-null useful throughput and overhead percentage rather than misleading zeroes.
-Repeated/discarded bytes can still be measured on failure. That value does not
-measure TCP retransmissions, packet loss, or transport overhead.
-
-## Recovery and success rates
-
-`recoveries[].restored_at` is an observed restoration's scheduled time.
-`recoveries[].recovery_s` is the time from there to the first subsequent
-acknowledgement that increases confirmed bytes. The `progress` event trace
-records those client acknowledgements. An unchanged probe does not qualify.
-Backoff and request overhead are included. Null means an observed restoration
-had no later progress; no entry means restoration was not observed at all.
-
-Boundary `success_rate` is verified successes divided by finished trials in the
-same strategy/rate/outage cell. Failed trials stay in the denominator. A fraction
-of 1 describes only that tested cell and sample, not a general reliability
-guarantee. Check observed-outage counts to identify uploads that finished before
-the disruption. See [boundary experiments](BOUNDARY_EXPERIMENTS.md).
-
-## Comparison
-
-Compare useful throughput and overhead only among verified successes with their
-configuration and strategy recorded. Keep failure counts and time to failure
-separate. Use the [experiment guide](EXPERIMENTS.md) for collection commands and
-[scenario definitions](SCENARIOS_AND_REPORTING.md) for retry and progress fields.
+See [experiments](EXPERIMENTS.md) and [boundary comparisons](BOUNDARY_EXPERIMENTS.md).

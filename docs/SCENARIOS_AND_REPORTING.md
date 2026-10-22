@@ -1,155 +1,21 @@
-> Historical prototype guide through 18 October. The current backend uses the trial/service API; this guide will be updated with the release documentation.
+# Scenarios and exports
 
-# Scenario configuration and transfer reporting
+The current `config.py` supplies stable, low, drop, outage, intermittent, demo,
+and custom scenarios. Rates are decimal kbps; zero means offline. Phase times
+are absolute, start at zero, and strictly increase. The default demo uses a
+2 MiB deterministic payload to ensure the early slowdown and outage are reached.
 
-For collection commands and a consistent report format, see the
-[experiment guide](EXPERIMENTS.md) and [report template](EXPERIMENT_REPORT_TEMPLATE.md).
+Basic sends once. Retry restarts from byte zero with capped exponential backoff.
+Resumable sends complete chunks, probes committed offsets through the same proxy
+after failure, and continues from confirmed progress. Successful chunks/probes
+do not reset or consume the total retry budget. Failed probes consume it.
 
-## Status
+The dashboard API exports CSV at `/api/experiments/<id>/csv` and full JSON at
+`/api/experiments/<id>?download`. JSON includes configuration, raw events,
+throughput samples, summaries, hashes, and metric definitions. CSV records one
+finished trial per row with scalar metrics and JSON configuration/recovery data.
+Exports during execution are snapshots. Results and chosen payloads are held in
+memory; restart loses session history. Files are persisted only by explicit export.
 
-The command loads bundled presets and reports transfer results as text or JSON.
-Its default mode now sends real localhost HTTP uploads. The preset inputs are
-configuration fixtures, not measured experiment results. Use `--simulate` to
-run the earlier delay-based simulator.
-
-HTTP uploads now pass through a body-paced proxy. Preset bandwidth limits are
-applied to real forwarding, and `bandwidth_applied` is true in both modes.
-The proxy also supports absolute phase schedules with zero kbps representing
-offline service. Outages interrupt active connections and reject new ones;
-restoration permits new uploads without restarting the phase clock.
-
-```powershell
-python main.py --scenario low-bandwidth --json
-```
-
-Explicit size and bandwidth options override preset values. Chunk size remains
-a separate command-line setting. Without `--scenario`, the identifier is
-`custom`. Presets are resolved relative to the application directory, so a
-different shell working directory does not change their location.
-
-## Scenario inputs
-
-The [example scenarios](../examples/scenarios.json) describe baseline,
-low-bandwidth, and outage conditions using the same payload size.
-
-| Field | Meaning |
-| --- | --- |
-| `id` | Unique scenario identifier |
-| `description` | Human-readable purpose of the scenario |
-| `payload_bytes` | Positive integer transfer size; HTTP uploads are limited to 32 MiB |
-| `bandwidth_kbps` | Positive, finite bandwidth in decimal kilobits per second |
-| `outage_at_s` | Optional nonnegative outage start, in seconds from trial start |
-| `outage_duration_s` | Optional positive outage duration; required with an outage start |
-
-A kilobit is 1,000 bits. A KiB is 1,024 bytes. The ideal duration in seconds is
-`payload_bytes * 8 / (bandwidth_kbps * 1000)`.
-
-For a 65,536-byte payload, the theoretical duration is 1.024 seconds at 512 kbps
-and 2.048 seconds at 256 kbps. These values are calculations, not observed
-measurements. A delay-based simulator also includes scheduling overhead.
-Paced HTTP uploads also include connection and acknowledgement overhead.
-
-## Result fields
-
-| Field | Meaning |
-| --- | --- |
-| `mode` | `http` for real uploads, or `simulation` for delay-based accounting |
-| `bandwidth_applied` | True: real proxy pacing in HTTP mode, simulated timing otherwise |
-| `scenario_id` | Identifier of the selected scenario |
-| `strategy` | HTTP-only `basic` (default), `retry`, or `resumable` |
-| `attempt_count` | Started HTTP operations: full-file attempts, or Resumable chunks and probes |
-| `retry_count` | Recovery operations actually begun after failure and backoff; successful chunks/probes add none |
-| `max_retries` | Effective total retry budget; zero for Basic |
-| `resume_chunk_bytes` | HTTP commit chunk size used only by Resumable; default 32 KiB |
-| `confirmed_bytes` | Final contiguous committed origin bytes, inspected after connection cleanup |
-| `offset_probe_count` | Resumable offset requests actually begun, including failed probes |
-| `payload_bytes` | Requested transfer size |
-| `bandwidth_kbps` | Configured bandwidth limit |
-| `chunk_bytes` | Maximum application body write size, or simulation step size |
-| `transferred_bytes` | Last client-acknowledged or probed byte count, possibly partial on failed Resumable trials; simulated bytes otherwise |
-| `proxy_ingress_bytes` | HTTP-only body bytes read by the proxy, excluding headers |
-| `bytes_sent` | Same measured value as proxy ingress bytes |
-| `client_submitted_bytes` | Body bytes submitted to the client socket, including buffered and repeated data |
-| `forwarded_bytes` | HTTP-only body bytes submitted by the proxy to the origin socket |
-| `timeout_s` | HTTP-only upload deadline, excluding service setup and cleanup |
-| `phases` | HTTP-only schedule of absolute `at` times and `kbps` limits |
-| `events` | Observed phase transitions with scheduled and actual elapsed times |
-| `elapsed_s` | Measured monotonic time from start to completion or terminal failure |
-| `status` | `completed` after matching SHA-256; `failed` on terminal transfer or integrity error |
-| `error` | Null on completion, otherwise the failure reason |
-| `expected_sha256`, `actual_sha256`, `integrity` | Independent source/origin hashes and verification outcome |
-| `retransmission_bytes`, `overhead_percent`, `useful_kbps` | Derived application metrics; see metric definitions |
-| `transport_overhead` | Null: transport overhead is not measured |
-| `metric_definitions` | Machine-readable meanings of integrity and measured/derived metrics |
-| `recoveries` | Observed restorations and time to the first increasing acknowledgement, or null time if unobserved |
-
-HTTP completion now requires a matching source and origin SHA-256. This does
-not establish durable disk storage or wire overhead. Simulation counts do not
-establish network delivery. An interrupted
-full-file request receives no acknowledgement, so `transferred_bytes` remains
-zero even when the proxy has forwarded part of its body.
-
-Resumable commits contiguous complete HTTP chunks. The origin discards an
-incomplete chunk while preserving earlier committed data. A failed Resumable
-trial may report nonzero confirmed and transferred bytes without being completed.
-Client-acknowledged `transferred_bytes` can lag the origin if an acknowledgement
-is lost; the next offset probe reconciles that state. Final `confirmed_bytes`
-is inspected directly after cleanup. See [metric definitions](METRICS.md) for
-the distinction and formulas. A hash failure can retain a full committed body
-while still being failed, with no useful-throughput or overhead percentage.
-
-Invalid settings or unknown presets produce a command-line error with exit
-status 2 and no result on standard output. They are not counted as completed
-transfers. JSON output contains only the result, with no text banner.
-HTTP deadlines or connection failures produce a failed result and exit with
-status 1. A failed result retains byte counters and phase events observed before
-termination. Basic ends immediately on failure. Retry starts fresh full-body
-attempts after exponential backoff until completion, budget exhaustion, or the
-trial deadline. Terminal failure stops the monitor; later phases are unobserved.
-
-Phase times must begin at zero and strictly increase. Times and rates must be
-finite and nonnegative. The command builds a single-outage schedule from
-`--outage-at-s` and `--outage-duration-s`; the Python proxy API accepts phase lists.
-The delay-based simulator rejects outage schedules instead of silently ignoring
-them. Phase event kinds are `started`, `outage`, `restored`, and `rate_changed`.
-Event `scheduled_at` is the configured phase time; `at` is when it was applied.
-
-Client event kinds include `upload_attempt`, `attempt_failed`, and `retry_scheduled`.
-An attempt event includes its one-based number. A scheduled retry includes the
-backoff duration (`delay_s`) and next attempt number. Scheduled retries do not
-count as started until their attempt event occurs. Phase events alone include
-`scheduled_at`; client event `at` uses the same monotonic trial clock.
-
-Retry backoff is 0.25, 0.5, 1, then 2 seconds, capped at 2 seconds. The retry
-budget is global to a trial; it does not reset on restoration or reconnect.
-Retry sends the same full body from byte zero. Successful Retry
-`elapsed_s` includes earlier failed attempts and backoff, and proxy byte counters
-include partial and repeated bodies across those attempts.
-
-Resumable sends sequential chunks and probes `GET /offset` through the proxy
-after any failure and backoff. Successful chunks and probes do not increment or
-reset the retry budget. Failed probes require another backoff and consume the
-same trial budget. `chunk_committed` and `offset_confirmed` events record the
-acknowledged offset. Its `attempt_count` includes chunks and probes, so it is
-not a cross-strategy count of full-file attempts. All retries remain inside the
-same deadline and absolute phase schedule.
-
-Increasing client acknowledgements also create `progress` events. These drive
-recovery observations; neither forwarded body bytes nor an unchanged probe
-indicates recovered progress. The boundary runner aggregates verified successes
-over finished trials independently for every tested strategy/rate/outage cell.
-See [boundary experiments](BOUNDARY_EXPERIMENTS.md) for sweep configuration,
-observation rules, and export fields.
-
-## Implementation milestones
-
-1. Fixed-default simulator: implemented.
-2. Configurable payload and bandwidth settings with validation: implemented.
-3. Named presets and transfer reports: implemented.
-4. Real HTTP body delivery and acknowledgement timing: implemented.
-5. Shared proxy body pacing, byte counters, and upload deadlines: implemented.
-6. Scheduled outages, restoration, and failed-transfer reports: implemented.
-7. Explicit Basic and full-file Retry strategies: implemented.
-8. Resumable uploads with committed-offset probes: implemented.
-9. SHA-256 verification and application transfer metrics: implemented.
-10. Recovery observations and failure-boundary experiments: implemented.
+See [metric definitions](METRICS.md), [experiment evidence](EXPERIMENTS.md), and
+[boundary comparisons](BOUNDARY_EXPERIMENTS.md).

@@ -1,163 +1,59 @@
-> Historical prototype guide through 18 October. The current backend uses the trial/service API; this guide will be updated with the release documentation.
+# Reproduce the recovery experiment
 
-# Running and reporting experiments
-
-This guide covers Basic, full-file Retry, and Resumable HTTP strategies.
-Use real HTTP mode for network experiments. The optional `--simulate` mode only
-accounts for transfer time and should be reported separately.
-
-## Preparation
-
-Use Python 3.11 or newer from the repository directory. No third-party packages
-or internet connection are required. Allow local connections to `127.0.0.1`.
-
-Record the source revision and Python version before collecting results:
+The current application is the localhost trial/service implementation, replacing
+the earlier prototype CLI. Run the full experiment without the frontend:
 
 ```powershell
-git rev-parse HEAD
-python --version
+python -m tests.run_demo
 ```
 
-Keep the payload at 65,536 bytes, write chunks at 4,096 bytes, and the deadline
-at 120 seconds for the comparison below. Avoid concurrent experiment commands;
-each command creates independent proxy and origin services, so their bandwidth
-allowances are separate. Record relevant background load or configuration changes.
+It uses a deterministic 2 MiB payload, one independent trial per strategy, and
+the `demo` schedule: 2,000 kbps at 0 s, 256 kbps at 3 s, offline at 7 s, and
+2,000 kbps restored at 12 s. The deadline is 120 seconds, the default commit
+chunk is 32 KiB, and each request has a 20 ms configured delay. All trial data
+and hashes are in [raw JSON](../validation/demo-results.json).
 
-## Scenarios
+## Measurements from this reconstruction
 
-| Preset | Payload | Body bandwidth | Disruption | Expected Basic outcome |
-| --- | --- | --- | --- | --- |
-| `baseline` | 65,536 bytes | 512 kbps | None | Completed; exit 0 |
-| `low-bandwidth` | 65,536 bytes | 256 kbps | None | Completed; exit 0 |
-| `outage` | 65,536 bytes | 256 kbps | Offline at 0.25 s; restoration scheduled at 1.25 s | Failed on interruption; exit 1 |
+Collected on **29 October 2026**, independently of reconstructed Git milestone
+dates. These are observations from one local run, not universal expected timings.
 
-The ideal body transfer durations are 1.024 seconds for baseline and 2.048
-seconds for low bandwidth. These are calculations, not measured results. Actual
-timing includes connection, pacing, scheduling, and acknowledgement overhead.
+| Strategy | Outcome | Seconds | Proxy ingress bytes | Repeated/discarded bytes | Retries | Hash integrity |
+| --- | --- | ---: | ---: | ---: | ---: | --- |
+| basic | failed | 7.01 | 864,256 | 864,256 | 0 | None |
+| retry | completed | 21.39 | 2,961,408 | 864,256 | 5 | True |
+| resumable | completed | 20.01 | 2,125,824 | 28,672 | 5 | True |
 
-The outage payload cannot finish before its configured interruption at the
-configured rate. Basic stops on failure and its trial is
-cleaned up immediately. Restoration after termination is scheduled but unobserved.
-The proxy restoration behavior is also checked by automated tests. Retry can
-keep a trial alive across restoration. Resumable retains committed chunks and
-continues from the server-reported offset.
+Basic stops at the outage. Retry resends the full payload after backoff.
+Resumable probes the committed offset through the proxy and preserves complete
+chunks. The demonstration asserts Basic fails, both recovering strategies verify
+their hashes and observe restoration, and Resumable repeats less body data.
 
-## Capture one comparison
+## Further collection
 
-Run these commands in PowerShell from the repository directory. The `tmp/`
-directory is ignored by Git. Use a new filename for each additional trial.
+Use `Lab.start` with `mode: boundary` for serial bandwidth/outage comparisons;
+the frontend exposes these controls in its later milestone. Each cell and
+strategy receives fresh services, counters, origin data, retry budget, and clock.
+For example:
 
-```powershell
-New-Item -ItemType Directory -Path 'tmp/experiments' -Force | Out-Null
+```python
+import asyncio
+from bandwidth_throttle_tester.app import Lab
 
-python main.py --scenario baseline --json | Set-Content -Encoding utf8 'tmp/experiments/baseline-01.json'
-$baselineExit = $LASTEXITCODE
+async def compare():
+    lab = Lab()
+    job = lab.start({'mode': 'boundary', 'size_bytes': 262144,
+                     'bandwidths': [256, 1024], 'outages': [0, 2],
+                     'trials': 3, 'delay_ms': 0, 'deadline_s': 30})
+    await lab.task
+    return lab.snapshot(job)
 
-python main.py --scenario low-bandwidth --json | Set-Content -Encoding utf8 'tmp/experiments/low-bandwidth-01.json'
-$lowBandwidthExit = $LASTEXITCODE
-
-python main.py --scenario outage --json | Set-Content -Encoding utf8 'tmp/experiments/outage-01.json'
-$outageExit = $LASTEXITCODE
-
-$baselineExit
-$lowBandwidthExit
-$outageExit
+results = asyncio.run(compare())
 ```
 
-Expected exit codes are 0, 0, and 1. An exit code of 1 for the outage is the
-expected experimental outcome. It is not a completed upload. Invalid arguments
-exit with code 2 and do not produce a trial result; correct the configuration
-before including that run in a comparison. A service setup error can also exit
-before a result is available; check for a valid JSON object before reporting it.
-
-Read saved output without depending on PowerShell's output encoding:
-
-```powershell
-Get-Content -Raw 'tmp/experiments/baseline-01.json' | ConvertFrom-Json
-Get-Content -Raw 'tmp/experiments/outage-01.json' | ConvertFrom-Json
-```
-
-Repeat each scenario at least three times, serially, for an exploratory
-comparison. Preserve every valid trial, including failures. Record the number
-of trials and the range of observed durations; three trials do not establish
-general reliability or statistical significance.
-
-## Compare Basic and Retry
-
-The commands above use Basic, the default strategy. Add a separate Retry run:
-
-```powershell
-python main.py --scenario outage --strategy retry --max-retries 5 --json | Set-Content -Encoding utf8 'tmp/experiments/outage-retry-01.json'
-$retryExit = $LASTEXITCODE
-$retryExit
-```
-
-Under the default outage schedule and deadline, Retry is expected to complete
-after restoration (exit 0), while Basic fails (exit 1). Run each command as a
-fresh trial with the same payload, rate, write chunks, phases, and deadline.
-Record the strategy, retry budget, actual attempts, and retries for every run.
-Retry starts full-file requests from byte zero, so its counters can exceed the
-payload size. Inspect recorded events and byte counts rather than assuming a
-fixed number of attempts or a universal completion time.
-
-## Compare Resumable
-
-```powershell
-python main.py --scenario outage --strategy resumable --resume-chunk-bytes 4096 --json | Set-Content -Encoding utf8 'tmp/experiments/outage-resumable-01.json'
-$resumableExit = $LASTEXITCODE
-$resumableExit
-```
-
-This example uses 4 KiB commit chunks so completed chunks can be acknowledged
-before the preset's early outage. The default commit size is 32 KiB; a first
-chunk that has not finished before interruption has no committed progress to
-preserve. Keep socket write size, payload, rate, phases, deadline, and retry budget
-fixed when comparing strategies, and record Resumable's commit size separately.
-
-Inspect `confirmed_bytes`, `offset_probe_count`, and progress events alongside
-proxy byte counters. A failed Resumable trial can retain confirmed partial data;
-nonzero progress does not make it completed. Successful chunk and probe requests
-do not consume retries. `attempt_count` includes these requests for Resumable,
-so it is not directly comparable to Basic/Retry full-file attempt counts.
-Probe failures count against the same retry budget and remain subject to outages.
-
-## Check each result
-
-- Confirm `mode` is `http` and `bandwidth_applied` is true.
-- Record the actual payload, rate, chunks, deadline, and phase schedule from JSON.
-- For completed uploads, check that `transferred_bytes` equals `payload_bytes`,
-  `integrity` is true, and the source and origin SHA-256 hashes match.
-- For interrupted full-file requests, `transferred_bytes` is zero because no full
-  request was acknowledged; proxy ingress or forwarding counts may be nonzero.
-- Keep the failure reason and observed events for every failed trial.
-- Distinguish an event's scheduled time (`scheduled_at`) from its observed time
-  (`at`). Do not infer a restoration event merely from a future schedule entry.
-
-The reported counters exclude HTTP headers, TCP/IP overhead, and TCP
-retransmissions. Acknowledged size alone does not establish integrity; use the
-hash verification result. Durable disk storage and transport overhead are not
-measured. See [METRICS.md](METRICS.md) for final committed bytes, repeated work,
-useful throughput, and overhead percentage. The latter two remain null on failed
-or unverified trials.
-
-## Report format
-
-For a serial grid across rates and outage durations, use the
-[boundary experiment guide](BOUNDARY_EXPERIMENTS.md). It preserves each trial and
-reports per-cell success fractions, failed counts, observed-outage counts, and
-acknowledgement-based recovery measurements.
-
-Copy the [experiment report template](EXPERIMENT_REPORT_TEMPLATE.md), then fill
-it using saved JSON rather than estimated timings. Keep one summary row per
-trial and preserve the complete JSON as the source record. Use paths relative
-to the report when linking raw results.
-
-For each scenario and strategy, summarize completed and failed trial counts separately.
-Calculate a completion fraction only over valid finished trials and name its
-denominator. Report observed timings with the outcome they belong to: a failed
-upload's short time to interruption is not a faster completed transfer.
-
-Before committing a published report, place its selected raw results beside the
-report outside `tmp/` and check that all links resolve. Leave unmeasured values
-explicitly unavailable. Use [scenario and metric definitions](SCENARIOS_AND_REPORTING.md)
-for field meanings, and the [development guide](DEVELOPMENT.md) for test commands.
+Preserve complete JSON/CSV exports and actual collection date, source revision,
+Python version, configuration, and background load. Inspect phase events to see
+whether each upload actually reached its outage. Count failed trials in success
+rate denominators, exclude cancelled trials, and do not treat short failure time
+as fast completion. Use the [report template](EXPERIMENT_REPORT_TEMPLATE.md) and
+[metric definitions](METRICS.md).

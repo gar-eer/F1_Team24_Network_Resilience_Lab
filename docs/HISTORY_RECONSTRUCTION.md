@@ -122,3 +122,9 @@ Add the original networking and scheduler integration suite plus the full recove
 demo. The static root-page assertion is introduced when the frontend lands.
 Measurements are collected on the actual execution date, independently of the
 reconstructed Git milestone date.
+
+## Milestone 17 — 2026-10-22
+
+Rini documents the actual reconstruction measurements, exact metric contracts,
+current scenarios/exports, and boundary interpretation. The collection date is
+explicitly separate from the illustrative milestone date.

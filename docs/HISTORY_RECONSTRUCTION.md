@@ -128,3 +128,8 @@ reconstructed Git milestone date.
 Rini documents the actual reconstruction measurements, exact metric contracts,
 current scenarios/exports, and boundary interpretation. The collection date is
 explicitly separate from the illustrative milestone date.
+
+## Milestone 18 — 2026-10-23
+
+Rini prepares the release README, architecture/development guides, contributing
+instructions, issue/PR templates, and the explicitly reconstructed changelog.

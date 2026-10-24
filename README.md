@@ -1,5 +1,3 @@
-> Frontend assets arrive in the next milestone. The API and recovery demo are available now.
-
 # Network Resilience Lab
 
 A local upload laboratory that answers: **when connectivity slows or disconnects, does an upload finish correctly, how quickly does durable progress return, and how much application data is wasted?**

@@ -207,6 +207,7 @@ class Scheduler(unittest.IsolatedAsyncioTestCase):
             await close(writer)
             return int(status[1]),data
         try:
+            self.assertEqual((await request('GET','/'))[0],200)
             self.assertEqual((await request('GET','/api/meta'))[0],200)
             self.assertEqual((await request('POST','/api/experiments',b'[]'))[0],400)
             self.assertEqual((await request('POST','/api/payload',b'x'*8192,'Origin: https://elsewhere.invalid\r\n'))[0],403)

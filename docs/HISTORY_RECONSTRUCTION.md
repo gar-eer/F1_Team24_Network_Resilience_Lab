@@ -133,3 +133,9 @@ explicitly separate from the illustrative milestone date.
 
 Rini prepares the release README, architecture/development guides, contributing
 instructions, issue/PR templates, and the explicitly reconstructed changelog.
+
+## Milestone 19 — 2026-10-24
+
+Rini adds the dark dashboard shell, payload/scenario/strategy controls, file
+selection, experiment start/cancel, polling, live measurements, progress, events,
+and basic finished-trial rows. Charts, inspection, and downloads follow next.

@@ -70,28 +70,57 @@ $('experiment-form').onsubmit=async e=>{
  catch(err){setBusy(false);toast(err.message);}
 };
 $('cancel').onclick=async()=>{ $('cancel').disabled=true;try{await api('/api/cancel',{method:'POST'});await poll();}catch(e){toast(e.message);}finally{$('cancel').disabled=false;} };
-function chart(){ $('chart-empty').hidden=false; }
-function render(){
- const running=job.status==='running'; setBusy(running);
- const r=job.active||job.results.at(-1);
- $('status-badge').className=`status ${job.status}`;
- $('status-badge').textContent=job.status;
- $('trial-counter').textContent=`${job.results.length} / ${job.total}`;
- $('result-summary').textContent=`${job.results.length} of ${job.total} trials finished · ${job.payload_name}`;
- if(r){
-  $('trial-label').textContent=`${r.strategy} · Trial ${r.trial}`;
-  $('elapsed').textContent=`${fmt(r.elapsed_s)} s`;
-  $('throughput').textContent=`${fmt(r.samples.at(-1)?.kbps??null,0)} kbps`;
-  $('network').textContent=`${fmt(r.network_kbps??null,0)} kbps`;
-  const progress=Math.min(100,r.confirmed_bytes/r.payload_bytes*100);
-  $('progress-text').textContent=`${fmt(progress,0)}%`;
-  $('progress-bar').style.width=`${progress}%`;
-  $('bytes-label').textContent=`${bytes(r.confirmed_bytes)} / ${bytes(r.payload_bytes)} confirmed`;
-  $('retry-label').textContent=`${r.retry_count} retries`;
-  $('events-count').textContent=`${r.events.length} EVENTS`;
-  $('event-list').innerHTML=r.events.map(e=>`<div class="event ${esc(e.kind)}"><time>${fmt(e.at,2)}s</time><p>${esc(e.message)}</p></div>`).join('');
+function chart(samples=[]){
+ const w=700,h=220,left=45,right=10,top=12,bottom=25;
+ const maxX=Math.max(1,...samples.map(s=>s.at));const maxY=Math.max(256,...samples.flatMap(s=>[s.kbps,s.limit_kbps]))*1.1;
+ const x=t=>left+t/maxX*(w-left-right), y=v=>h-bottom-v/maxY*(h-top-bottom);
+ let svg='<defs><linearGradient id="area" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#12a88d" stop-opacity=".16"/><stop offset="1" stop-color="#12a88d" stop-opacity="0"/></linearGradient></defs>';
+ for(let i=0;i<5;i++){let v=maxY*i/4,yy=y(v);svg+=`<line x1="${left}" y1="${yy}" x2="${w-right}" y2="${yy}" stroke="var(--chart-grid, #eaf0f4)" stroke-dasharray="3 4"/><text x="${left-9}" y="${yy+3}" text-anchor="end" fill="var(--chart-label, #a1adbb)" font-size="9">${Math.round(v)}</text>`;}
+ for(let i=0;i<6;i++)svg+=`<text x="${x(maxX*i/5)}" y="${h-6}" text-anchor="middle" fill="var(--chart-label, #a1adbb)" font-size="9">${fmt(maxX*i/5,1)}</text>`;
+ if(samples.length){
+  const points=samples.map(s=>`${x(s.at)},${y(s.kbps)}`).join(' ');
+  svg+=`<polygon points="${x(samples[0].at)},${y(0)} ${points} ${x(samples.at(-1).at)},${y(0)}" fill="url(#area)"/><polyline points="${points}" fill="none" stroke="#10a68e" stroke-width="2" stroke-linejoin="round"/>`;
+  let path=`M${x(samples[0].at)},${y(samples[0].limit_kbps)}`;
+  samples.slice(1).forEach(s=>{path+=`H${x(s.at)}V${y(s.limit_kbps)}`;});
+  svg+=`<path d="${path}" fill="none" stroke="var(--chart-limit, #9eafbd)" stroke-width="1.3" stroke-dasharray="5 4"/>`;
  }
- $('result-rows').innerHTML=job.results.map(r=>`<tr><td>${esc(r.strategy)}</td><td>${esc(r.status)}</td><td>${fmt(r.elapsed_s,2)}s</td><td>${fmt(r.useful_kbps,0)}</td><td>${bytes(r.retransmission_bytes)}</td><td>${r.retry_count}</td><td>—</td><td>${r.integrity===true?'✓ SHA-256':'—'}</td></tr>`).join('')||'<tr><td colspan="8" class="table-empty">Waiting for finished trials.</td></tr>';
+ $('chart').innerHTML=svg; $('chart-empty').hidden=!!samples.length;
+}
+function render(){
+ const running=job.status==='running';setBusy(running);
+ const inspected=selected!=null?job.results[selected]:null;
+ const r=inspected||job.active||job.results.at(-1);
+ const state=inspected?r.status:job.status;
+ $('status-badge').className=`status ${state}`;$('status-badge').textContent=`●  ${state==='completed'?'Finished':state[0].toUpperCase()+state.slice(1)}`;
+ $('trial-counter').textContent=`${job.results.length} / ${job.total}`;
+ $('trial-label').textContent=r?`${r.strategy[0].toUpperCase()+r.strategy.slice(1)} · Trial ${r.trial}${inspected?' · inspecting result':''}`:'Preparing experiment…';
+ if(r){
+  $('elapsed').innerHTML=`${fmt(r.elapsed_s)}<small>s</small>`;
+  $('throughput').innerHTML=`${fmt(r.samples.at(-1)?.kbps??null,0)}<small>kbps</small>`;
+  $('network').innerHTML=`${fmt(r.network_kbps??null,0)}<small>kbps</small>`;
+  const progress=Math.min(100,r.confirmed_bytes/r.payload_bytes*100);
+  $('progress-text').textContent=`${fmt(progress,0)}%`;$('progress-bar').style.width=`${progress}%`;
+  $('bytes-label').textContent=`${bytes(r.confirmed_bytes)} / ${bytes(r.payload_bytes)} confirmed · ${bytes(r.forwarded_bytes)} forwarded`;
+  $('retry-label').textContent=`${r.retry_count} retries`;
+  chart(r.samples);
+  $('events-count').textContent=`${r.events.length} EVENTS`;
+  const list=$('event-list'), atBottom=list.scrollTop+list.clientHeight>=list.scrollHeight-30;
+  list.innerHTML=r.events.map(e=>`<div class="event ${esc(e.kind)}"><time>${fmt(e.at,2)}s</time><span></span><p>${esc(e.message)}</p></div>`).join('');
+  if(atBottom)list.scrollTop=list.scrollHeight;
+ }
+ $('result-summary').textContent=`${job.results.length} of ${job.total} trials finished · ${job.payload_name} · ${job.status}${job.error?' · '+job.error:''}`;
+ $('result-rows').innerHTML=job.results.length?job.results.map((r,i)=>{
+  const recovery=r.recoveries.map(x=>x.recovery_s).filter(x=>x!=null);
+  return `<tr data-index="${i}" tabindex="0" aria-label="Inspect ${r.strategy} trial ${r.trial}" class="${selected===i?'selected':''}"><td class="result-strategy">${esc(r.strategy)}<small>#${r.trial}${r.config.bandwidth_kbps!=null?' · '+r.config.bandwidth_kbps+' kbps / '+r.config.outage_s+'s outage':''}</small></td><td><span class="status ${esc(r.status)}">${r.status==='completed'?'✓ Verified':esc(r.status)}</span></td><td>${fmt(r.elapsed_s,2)}s</td><td>${fmt(r.useful_kbps,0)}</td><td>${bytes(r.retransmission_bytes)}</td><td>${r.retry_count}</td><td>${recovery.length?recovery.map(v=>fmt(v,2)+'s').join(', '):'—'}</td><td>${r.integrity===true?'✓ SHA-256':r.integrity===false?'✕ Mismatch':'—'}</td></tr>`;
+ }).join(''):'<tr><td colspan="8" class="table-empty">Experiment running. Results will appear after each trial.</td></tr>';
+ $('success-summary').innerHTML=job.summaries.filter(g=>g.bandwidth_kbps==null).map(g=>`<span><strong>${esc(g.strategy)}</strong> ${g.successes}/${g.trials} verified · ${fmt(g.success_rate==null?null:g.success_rate*100,0)}% success</span>`).join('');
+ for(const [id,path] of [['export-csv','/csv'],['export-json','?download']]){ $(id).href=`/api/experiments/${job.id}${path}`;$(id).classList.remove('disabled');$(id).setAttribute('aria-disabled','false');$(id).setAttribute('download',''); }
+ $('boundary-results').hidden=job.mode!=='boundary';
+ if(job.mode==='boundary'){
+  $('heatmap').innerHTML=`<table><thead><tr><th>kbps</th><th>OUTAGE</th><th>STRATEGY</th><th>VERIFIED</th><th>SUCCESS RATE</th></tr></thead><tbody>${job.summaries.map(g=>`<tr><td>${g.bandwidth_kbps}</td><td>${g.outage_s}s</td><td>${esc(g.strategy)}</td><td>${g.successes}/${g.trials}</td><td class="${g.success_rate>=.5?'good':'bad'}">${fmt(g.success_rate==null?null:g.success_rate*100,0)}%</td></tr>`).join('')}</tbody></table>`;
+ }
+ $('hash-detail').hidden=!inspected;
+ if(inspected)$('hash-detail').innerHTML=`Expected SHA-256: ${esc(inspected.expected_sha256)}<br>Origin SHA-256: ${esc(inspected.actual_sha256||'Unavailable (no complete file verified)')}<br>Proxy ingress: ${inspected.bytes_sent.toLocaleString()} bytes · Client submitted: ${inspected.client_submitted_bytes.toLocaleString()} bytes · Forwarded: ${inspected.forwarded_bytes.toLocaleString()} bytes<br>Retransmission overhead: ${fmt(inspected.overhead_percent,2)}% · ${esc(inspected.error||'No terminal error')}<br>Configuration: ${esc(JSON.stringify(inspected.config))}`;
 }
 function inspect(e){const row=e.target.closest('tr[data-index]');if(row){selected=Number(row.dataset.index);render();}}
 $('result-rows').onclick=inspect;$('result-rows').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();inspect(e);}};

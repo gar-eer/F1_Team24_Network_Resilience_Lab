@@ -139,3 +139,8 @@ instructions, issue/PR templates, and the explicitly reconstructed changelog.
 Rini adds the dark dashboard shell, payload/scenario/strategy controls, file
 selection, experiment start/cancel, polling, live measurements, progress, events,
 and basic finished-trial rows. Charts, inspection, and downloads follow next.
+
+## Milestone 20 — 2026-10-25
+
+Rini adds live SVG throughput/limit plots, trial-row inspection, integrity and
+configuration details, boundary result tables, and CSV/JSON download links.

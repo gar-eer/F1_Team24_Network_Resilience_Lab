@@ -23,3 +23,11 @@ chart data, inspection details, and no console warnings/errors. See
 Source line endings are preserved with `.gitattributes` so matching the original
 means matching bytes, not only equivalent normalized text. Layout and theme
 remain the final two staged frontend changes.
+
+## Final release checks
+
+The release suite passed all 18 tests; see [full output](network-tests.txt).
+Browser checks verified light-mode persistence after reload, measured charts,
+row inspection, a completed boundary map, and a 390-pixel responsive layout.
+No console warnings or errors were observed. All 14 original application and
+test files match byte-for-byte; see [source hashes](exact-source-match.json).

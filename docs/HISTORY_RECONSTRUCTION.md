@@ -155,3 +155,9 @@ source bytes with line-ending preservation. The 18-test release suite passes.
 
 Rini refines dashboard spacing, chart area, result separation, and responsive
 layout, and documents the actual configuration/monitor/inspection/export flow.
+
+## Milestone 23 — 2026-10-26
+
+Rini adds the final light/dark toggle, pre-style theme application, saved
+preference, and system preference handling. Application files are verified
+byte-for-byte against the original source snapshot after this milestone.

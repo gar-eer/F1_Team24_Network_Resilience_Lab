@@ -16,10 +16,10 @@ do not treat this document as evidence of an executed experiment.
 | Python version | [version] |
 | Operating system | [system and version] |
 | Relevant background load | [observations] |
-| Execution mode | [HTTP or simulation; report separately] |
+| Execution mode | Real localhost HTTP uploads |
 | Client strategy | [Basic, Retry, or Resumable; report separately] |
-| Retry budget | [effective max_retries from the result] |
-| Resumable commit size | [resume_chunk_bytes, or not applicable] |
+| Retry budget | [config.max_retries; Basic makes no retries] |
+| Resumable commit size | [config.chunk_bytes, or not applicable] |
 | Planned trials per scenario | [count] |
 
 Historical milestone dates in the reconstructed Git history are not evidence
@@ -27,24 +27,22 @@ of when experimental data was collected. Record the actual collection date.
 
 ## Configuration
 
-[List the exact commands, payload and write chunk sizes, bandwidth limits,
+[List the exact commands or API configuration, payload and commit chunk sizes, bandwidth limits,
 deadline, and absolute phase schedules. Describe any changes from the presets.]
 
 ## Individual trials
 
-Keep one row per valid finished trial. Use the exact JSON field definitions.
-Add rows as needed and retain failures. Record the strategy, attempt_count, and
-retry_count for each trial in its notes or additional columns. Link the raw JSON
-for each row.
-For Resumable, also record confirmed_bytes and offset_probe_count. Its request
-attempt count includes successful chunks and probes, unlike a full-file count.
+Keep one row per finished trial and retain failures and cancellations. Record
+strategy, retry_count, and confirmed_bytes from each result and link its raw JSON.
+Use events to describe resumption; request-attempt and probe totals are not
+exported by the final engine and must not be invented.
 Record expected_sha256, actual_sha256, and integrity with each trial. A completed
 row must have matching hashes and integrity true. Retain null unavailable values
 for failed-trial useful throughput and overhead percentage.
 
-| Run ID | Scenario | Outcome | Elapsed (s) | Payload (bytes) | Acknowledged (bytes) | Proxy ingress (bytes) | Forwarded (bytes) | Exit code | Raw JSON |
+| Run ID | Scenario | Outcome | Elapsed (s) | Payload (bytes) | Confirmed (bytes) | Proxy ingress (bytes) | Forwarded (bytes) | Retries | Raw JSON |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| [run] | [scenario] | [completed/failed] | [measured] | [configured] | [measured] | [measured] | [measured] | [recorded] | [relative link] |
+| [run] | [scenario] | [completed/failed/cancelled] | [measured] | [configured] | [measured] | [measured] | [measured] | [retry_count] | [relative link] |
 
 ## Failures and observed events
 
@@ -56,17 +54,21 @@ with reasons; do not silently discard them.]
 ## Comparison
 
 [For boundary experiments, identify each bandwidth/outage/strategy cell and
-record observed_outage_trials alongside finished trials. Record observed
+record which trials actually experienced an outage by inspecting their event
+traces; there is no separate exported outage-exposure counter. Record observed
 restorations and recovery times; distinguish null recovery from an unobserved
 restoration, and do not replace either with zero.]
 
-| Scenario and strategy | Valid trials | Completed | Failed | Completion fraction | Completed duration range (s) | Failed duration range (s) |
+| Scenario and strategy | Non-cancelled trials | Verified successes | Failed | Completion fraction | Completed duration range (s) | Failed duration range (s) |
 | --- | --- | --- | --- | --- | --- | --- |
-| [scenario / strategy] | [count] | [count] | [count] | [completed / valid trials] | [observed range or unavailable] | [observed range or unavailable] |
+| [scenario / strategy] | [count] | [count] | [count] | [verified successes / non-cancelled trials] | [observed range or unavailable] | [observed range or unavailable] |
 
 [Describe differences supported by the recorded trials. Keep failed time to
 interruption separate from completed upload time. State which outcome was
 expected and whether the evidence matched it.]
+
+List cancelled trials separately and exclude them from completion-rate
+denominators, matching the application's summaries.
 
 ## Limits and conclusion
 

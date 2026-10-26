@@ -150,3 +150,8 @@ configuration details, boundary result tables, and CSV/JSON download links.
 Sreerag validates live dashboard/API integration and error responses, verifies
 CSV/JSON exports and real browser inspection, and restores exact original
 source bytes with line-ending preservation. The 18-test release suite passes.
+
+## Milestone 22 — 2026-10-26
+
+Rini refines dashboard spacing, chart area, result separation, and responsive
+layout, and documents the actual configuration/monitor/inspection/export flow.

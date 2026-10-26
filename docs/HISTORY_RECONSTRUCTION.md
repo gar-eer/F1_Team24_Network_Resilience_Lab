@@ -144,3 +144,9 @@ and basic finished-trial rows. Charts, inspection, and downloads follow next.
 
 Rini adds live SVG throughput/limit plots, trial-row inspection, integrity and
 configuration details, boundary result tables, and CSV/JSON download links.
+
+## Milestone 21 — 2026-10-26
+
+Sreerag validates live dashboard/API integration and error responses, verifies
+CSV/JSON exports and real browser inspection, and restores exact original
+source bytes with line-ending preservation. The 18-test release suite passes.

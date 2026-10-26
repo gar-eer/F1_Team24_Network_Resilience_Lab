@@ -68,18 +68,15 @@
     "chart": "SVG throughput polyline rendered from measured samples",
     "row_inspection": "Matching source/origin SHA-256 and configuration displayed",
     "console": "No errors or warnings observed",
-    "theme": "Dark only at this milestone; persistence checked in milestone 23"
+    "theme": "Dark to light toggle verified; light preference persisted after reload",
+    "responsive": "390-pixel viewport checked without horizontal document overflow",
+    "boundary": "Browser sweep produced three verified rows and 100% per-cell rates"
   },
   "network_suite": {
     "passed": 18,
     "command": "python -m unittest discover -v"
   },
   "source_parity": {
-    "pending_final_frontend_stages": [
-      "bandwidth_throttle_tester/static/index.html",
-      "bandwidth_throttle_tester/static/style.css",
-      "bandwidth_throttle_tester/static/theme.js"
-    ],
-    "all_other_application_files": "byte-for-byte match"
+    "all_application_and_test_files": "14 byte-for-byte matches to original"
   }
 }

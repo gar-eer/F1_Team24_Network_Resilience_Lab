@@ -1,7 +1,7 @@
 # Reconstructed development timeline
 
 Dates and contributor allocations are illustrative, not verified historical activity.
-Later milestones are planned until their corresponding commits exist.
+All 23 development milestones are complete; merge commits integrate each branch.
 
 | # | Date | Contributor | Milestone |
 | --- | --- | --- | --- |

@@ -157,3 +157,9 @@ The reconstructed allocation is approximately 60% Sreerag Aneesh
 ([rini-7](https://github.com/rini-7)). Each contributor owns their feature merges.
 The dates and allocations describe a reconstructed timeline, not verified past
 contributions, GitHub PRs, reviews, or approvals.
+
+## Dashboard appearance
+
+Use the header theme button to switch light/dark mode. Your explicit choice is
+remembered; otherwise the dashboard follows your system preference. See the
+[frontend guide](docs/FRONTEND.md).

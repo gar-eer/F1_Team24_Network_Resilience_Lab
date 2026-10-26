@@ -18,4 +18,6 @@ Inspect events to distinguish a completed upload that experienced disruption
 from a small upload that finished before it. Cancel stops active and queued work.
 
 The responsive layout keeps configuration, monitoring, results, and help usable
-at narrower widths. The release's final theme milestone adds light-mode controls.
+at narrower widths. The theme button switches between light and dark mode, remembers an explicit
+choice in browser storage, and follows system preference until a choice is saved.
+The theme is applied before styles load to avoid a bright flash on reload.

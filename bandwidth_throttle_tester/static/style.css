@@ -74,6 +74,3 @@
 [data-theme="dark"] :is(.field-label,.hint,.strategy small,.settings-row > label,summary,.monitor-sub,.metric-grid span,.metric-grid small,.chart-heading,.legend,.axis-label,.progress-heading,.progress-footer,.event p,.event time,.results-description,.success-summary,.methodology p,.methodology > summary,.methodology > summary > span,.boundary-note,.phase-preview small,.table-empty,.empty-events,#chart-empty strong,#chart-empty small,#metric-definitions,.method-note,.method-note p > span,footer) { color: #a5b6cb; }
 [data-theme="dark"] #metric-definitions strong { color: #d2e4f2; }
 @media(max-width:720px) { .theme-toggle { padding: 6px 10px; } #theme-label { display: none; } .top-meta { gap: 12px; } }
-
-/* Initial dashboard spacing, refined in the layout milestone. */
-.work-grid{gap:16px}.chart-wrap{height:210px}.results{margin-top:16px}

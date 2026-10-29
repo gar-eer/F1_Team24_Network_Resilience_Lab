@@ -29,6 +29,13 @@ All 23 development milestones are complete; merge commits integrate each branch.
 | 22 | 2026-10-26 | Rini | Refine frontend layout and update usage documentation |
 | 23 | 2026-10-26 | Rini | Add frontend light mode with saved theme preference |
 
-The final target is 23 development commits and 22 contributor-owned merges:
+The reconstructed 27 September-26 October window contains 23 development
+commits and 22 contributor-owned merges:
 Sreerag 27 total, Rini 18 total (60:40). GitHub PRs/reviews are separate and are
 not created by local merge commits. See [provenance](docs/HISTORY_RECONSTRUCTION.md).
+
+## Subsequent evidence restoration — 29 October 2026
+
+Sreerag restores the original report experiments and validation evidence, keeps
+newer reconstruction checks separately, and aligns evidence documentation with
+the report. These follow-up commits are outside the historical allocation.

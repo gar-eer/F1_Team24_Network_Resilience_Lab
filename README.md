@@ -163,3 +163,12 @@ contributions, GitHub PRs, reviews, or approvals.
 Use the header theme button to switch light/dark mode. Your explicit choice is
 remembered; otherwise the dashboard follows your system preference. See the
 [frontend guide](docs/FRONTEND.md).
+
+## Evidence used by the report
+
+The original 27-upload, 0.5 MiB evaluation, raw exports, summaries, screenshots,
+analysis script, and checksum manifest are preserved unchanged in
+[Step 2 evidence](docs/step2-experiments/README.md). See the
+[experiment index](docs/EXPERIMENTS.md) and [validation index](validation/README.md).
+The newer 2 MiB reconstruction demo is kept separately and is not a replacement
+for the report data.

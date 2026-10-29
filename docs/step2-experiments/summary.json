@@ -1,0 +1,252 @@
+{
+  "payload_sha256": "33bc8aab40703678c3ebe94d2dd8f2afff285dd901f9234e841e4679f8204fd5",
+  "experiments": [
+    {
+      "scenario": "stable",
+      "experiment_id": "a71aeaf467f9",
+      "created_at": "2026-10-25T11:08:04.594980+00:00",
+      "config": {
+        "scenario": "stable",
+        "strategies": [
+          "basic",
+          "retry",
+          "resumable"
+        ],
+        "phases": [
+          {
+            "at": 0,
+            "kbps": 2048
+          }
+        ],
+        "size_bytes": 524288,
+        "trials": 3,
+        "delay_ms": 20,
+        "deadline_s": 60,
+        "max_retries": 12,
+        "chunk_bytes": 32768
+      }
+    },
+    {
+      "scenario": "low",
+      "experiment_id": "293e03804aad",
+      "created_at": "2026-10-25T11:09:22.332235+00:00",
+      "config": {
+        "scenario": "low",
+        "strategies": [
+          "basic",
+          "retry",
+          "resumable"
+        ],
+        "phases": [
+          {
+            "at": 0,
+            "kbps": 256
+          }
+        ],
+        "size_bytes": 524288,
+        "trials": 3,
+        "delay_ms": 20,
+        "deadline_s": 60,
+        "max_retries": 12,
+        "chunk_bytes": 32768
+      }
+    },
+    {
+      "scenario": "outage",
+      "experiment_id": "8ccf94b0b217",
+      "created_at": "2026-10-25T11:12:11.899431+00:00",
+      "config": {
+        "scenario": "outage",
+        "strategies": [
+          "basic",
+          "retry",
+          "resumable"
+        ],
+        "phases": [
+          {
+            "at": 0,
+            "kbps": 2048
+          },
+          {
+            "at": 2,
+            "kbps": 0
+          },
+          {
+            "at": 7,
+            "kbps": 2048
+          }
+        ],
+        "size_bytes": 524288,
+        "trials": 3,
+        "delay_ms": 20,
+        "deadline_s": 60,
+        "max_retries": 12,
+        "chunk_bytes": 32768
+      }
+    }
+  ],
+  "summary": [
+    {
+      "scenario": "stable",
+      "strategy": "basic",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 2.12383700000161,
+      "sample_sd_completion_s_success_only": 0.010389222534915072,
+      "min_completion_s_success_only": 2.1167824000003748,
+      "max_completion_s_success_only": 2.135767300002044,
+      "mean_terminal_time_s_all_trials": 2.12383700000161,
+      "mean_app_waste_bytes_all_trials": 0,
+      "mean_overhead_percent_success_only": 0.0,
+      "mean_retries_all_trials": 0,
+      "mean_useful_kbps_success_only": 1974.9023734571801,
+      "mean_recovery_s_observed": null,
+      "recovery_observations": 0
+    },
+    {
+      "scenario": "stable",
+      "strategy": "retry",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 2.1171264999999644,
+      "sample_sd_completion_s_success_only": 0.003425520301426358,
+      "min_completion_s_success_only": 2.113253399998939,
+      "max_completion_s_success_only": 2.119758400000137,
+      "mean_terminal_time_s_all_trials": 2.1171264999999644,
+      "mean_app_waste_bytes_all_trials": 0,
+      "mean_overhead_percent_success_only": 0.0,
+      "mean_retries_all_trials": 0,
+      "mean_useful_kbps_success_only": 1981.1340162709923,
+      "mean_recovery_s_observed": null,
+      "recovery_observations": 0
+    },
+    {
+      "scenario": "stable",
+      "strategy": "resumable",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 2.611026933331838,
+      "sample_sd_completion_s_success_only": 0.006048745076184107,
+      "min_completion_s_success_only": 2.6072301999993215,
+      "max_completion_s_success_only": 2.6180022999978974,
+      "mean_terminal_time_s_all_trials": 2.611026933331838,
+      "mean_app_waste_bytes_all_trials": 0,
+      "mean_overhead_percent_success_only": 0.0,
+      "mean_retries_all_trials": 0,
+      "mean_useful_kbps_success_only": 1606.386718229739,
+      "mean_recovery_s_observed": null,
+      "recovery_observations": 0
+    },
+    {
+      "scenario": "low",
+      "strategy": "basic",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 16.460073699998855,
+      "sample_sd_completion_s_success_only": 0.009469785927200344,
+      "min_completion_s_success_only": 16.453622999997606,
+      "max_completion_s_success_only": 16.470945500001108,
+      "mean_terminal_time_s_all_trials": 16.460073699998855,
+      "mean_app_waste_bytes_all_trials": 0,
+      "mean_overhead_percent_success_only": 0.0,
+      "mean_retries_all_trials": 0,
+      "mean_useful_kbps_success_only": 254.81689825168618,
+      "mean_recovery_s_observed": null,
+      "recovery_observations": 0
+    },
+    {
+      "scenario": "low",
+      "strategy": "retry",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 16.464819466667297,
+      "sample_sd_completion_s_success_only": 0.0018959050657442315,
+      "min_completion_s_success_only": 16.462661199999275,
+      "max_completion_s_success_only": 16.466216200002236,
+      "mean_terminal_time_s_all_trials": 16.464819466667297,
+      "mean_app_waste_bytes_all_trials": 0,
+      "mean_overhead_percent_success_only": 0.0,
+      "mean_retries_all_trials": 0,
+      "mean_useful_kbps_success_only": 254.74339670526095,
+      "mean_recovery_s_observed": null,
+      "recovery_observations": 0
+    },
+    {
+      "scenario": "low",
+      "strategy": "resumable",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 16.951150299999426,
+      "sample_sd_completion_s_success_only": 0.004988738027564893,
+      "min_completion_s_success_only": 16.94721369999752,
+      "max_completion_s_success_only": 16.956760700002633,
+      "mean_terminal_time_s_all_trials": 16.951150299999426,
+      "mean_app_waste_bytes_all_trials": 0,
+      "mean_overhead_percent_success_only": 0.0,
+      "mean_retries_all_trials": 0,
+      "mean_useful_kbps_success_only": 247.43478571810036,
+      "mean_recovery_s_observed": null,
+      "recovery_observations": 0
+    },
+    {
+      "scenario": "outage",
+      "strategy": "basic",
+      "trials": 3,
+      "verified_successes": 0,
+      "observed_success_percent": 0.0,
+      "mean_completion_s_success_only": null,
+      "sample_sd_completion_s_success_only": null,
+      "min_completion_s_success_only": null,
+      "max_completion_s_success_only": null,
+      "mean_terminal_time_s_all_trials": 2.009224366667089,
+      "mean_app_waste_bytes_all_trials": 496981.3333333333,
+      "mean_overhead_percent_success_only": null,
+      "mean_retries_all_trials": 0,
+      "mean_useful_kbps_success_only": null,
+      "mean_recovery_s_observed": null,
+      "recovery_observations": 0
+    },
+    {
+      "scenario": "outage",
+      "strategy": "retry",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 9.947499000000485,
+      "sample_sd_completion_s_success_only": 0.006014078179920135,
+      "min_completion_s_success_only": 9.941056200001185,
+      "max_completion_s_success_only": 9.95296469999812,
+      "mean_terminal_time_s_all_trials": 9.947499000000485,
+      "mean_app_waste_bytes_all_trials": 498346.6666666667,
+      "mean_overhead_percent_success_only": 95.05208333333333,
+      "mean_retries_all_trials": 5,
+      "mean_useful_kbps_success_only": 421.6441763113387,
+      "mean_recovery_s_observed": 2.9474654333340973,
+      "recovery_observations": 3
+    },
+    {
+      "scenario": "outage",
+      "strategy": "resumable",
+      "trials": 3,
+      "verified_successes": 3,
+      "observed_success_percent": 100.0,
+      "mean_completion_s_success_only": 8.50026573333283,
+      "sample_sd_completion_s_success_only": 0.006860985574680036,
+      "min_completion_s_success_only": 8.492507400002069,
+      "max_completion_s_success_only": 8.505533899999136,
+      "mean_terminal_time_s_all_trials": 8.50026573333283,
+      "mean_app_waste_bytes_all_trials": 4096,
+      "mean_overhead_percent_success_only": 0.78125,
+      "mean_retries_all_trials": 5,
+      "mean_useful_kbps_success_only": 493.43231776247694,
+      "mean_recovery_s_observed": 1.00918773333251,
+      "recovery_observations": 3
+    }
+  ]
+}

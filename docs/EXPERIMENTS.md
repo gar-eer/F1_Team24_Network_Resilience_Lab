@@ -1,59 +1,64 @@
-# Reproduce the recovery experiment
+# Report evaluation and supporting evidence
 
-The current application is the localhost trial/service implementation, replacing
-the earlier prototype CLI. Run the full experiment without the frontend:
+The report **Comparative Evaluation of File-Upload Recovery Strategies under
+Controlled Network Disruption** uses the original 27-upload evaluation collected
+on 25 October 2026. Its raw exports, analysis, statistics, screenshots, and
+checksum manifest are restored unchanged in [step2-experiments](step2-experiments/README.md).
+They are distinct from the additional 29 October reconstruction checks.
+
+## Evaluation settings
+
+- One deterministic 524,288-byte (0.5 MiB) payload.
+- Basic, Retry, and Resumable; three repetitions under each of three scenarios.
+- A 60-second deadline, 20 ms request delay, 12 retries, and 32 KiB commit chunks.
+- Stable: 2,048 kbps. Slow (`low`): 256 kbps. Outage: 2,048 kbps, offline from
+  2 to 7 seconds, then restored to 2,048 kbps.
+
+Each trial has fresh services, committed data, counters, clock, and retry budget.
+The fixed strategy/scenario order and three repeats limit generalization.
+
+## Results supporting the report
+
+| Scenario | Strategy | Verified | Mean completion (s), successes only | Mean repeated/discarded bytes |
+| --- | --- | --- | ---: | ---: |
+| stable | basic | 3/3 | 2.12 | 0 |
+| stable | retry | 3/3 | 2.12 | 0 |
+| stable | resumable | 3/3 | 2.61 | 0 |
+| low | basic | 3/3 | 16.46 | 0 |
+| low | retry | 3/3 | 16.46 | 0 |
+| low | resumable | 3/3 | 16.95 | 0 |
+| outage | basic | 0/3 | N/A | 496,981 |
+| outage | retry | 3/3 | 9.95 | 498,347 |
+| outage | resumable | 3/3 | 8.50 | 4,096 |
+
+The outage comparison is 9.95 seconds for Retry versus 8.50 seconds for Resumable,
+with 498,347 versus 4,096 mean redundant body bytes: 99.2% less for this tested
+configuration. All 18 stable/slow uploads verified; outage Basic failed 3/3,
+and Retry/Resumable each verified 3/3. Full precision and sample standard
+deviations are retained in [summary.csv](step2-experiments/summary.csv).
+
+## Evidence and reproduction
+
+- [Raw JSON/CSV exports](step2-experiments/raw/), [combined trials](step2-experiments/all-trials.csv),
+  and [summary JSON](step2-experiments/summary.json).
+- [Original screenshots and captions](step2-experiments/screenshots/README.md).
+- [Evidence checksum manifest](step2-experiments/SHA256SUMS.txt).
+- [Original Step 1 validation](../validation/step1-verification.md).
 
 ```powershell
-python -m tests.run_demo
+python main.py
+python -m unittest discover -v
+python docs/step2-experiments/analyze_results.py
 ```
 
-It uses a deterministic 2 MiB payload, one independent trial per strategy, and
-the `demo` schedule: 2,000 kbps at 0 s, 256 kbps at 3 s, offline at 7 s, and
-2,000 kbps restored at 12 s. The deadline is 120 seconds, the default commit
-chunk is 32 KiB, and each request has a 20 ms configured delay. All trial data
-and hashes are in [raw JSON](../validation/demo-results.json).
+The analysis command validates saved exports and regenerates derived summaries;
+it does not rerun network uploads. To collect another evaluation, use the settings
+above and export each scenario separately. New measurements may differ; preserve
+them separately rather than replacing the original report evidence.
 
-## Measurements from this reconstruction
+## Additional validation
 
-Collected on **29 October 2026**, independently of reconstructed Git milestone
-dates. These are observations from one local run, not universal expected timings.
-
-| Strategy | Outcome | Seconds | Proxy ingress bytes | Repeated/discarded bytes | Retries | Hash integrity |
-| --- | --- | ---: | ---: | ---: | ---: | --- |
-| basic | failed | 7.01 | 864,256 | 864,256 | 0 | None |
-| retry | completed | 21.39 | 2,961,408 | 864,256 | 5 | True |
-| resumable | completed | 20.01 | 2,125,824 | 28,672 | 5 | True |
-
-Basic stops at the outage. Retry resends the full payload after backoff.
-Resumable probes the committed offset through the proxy and preserves complete
-chunks. The demonstration asserts Basic fails, both recovering strategies verify
-their hashes and observe restoration, and Resumable repeats less body data.
-
-## Further collection
-
-Use `Lab.start` with `mode: boundary` for serial bandwidth/outage comparisons;
-the frontend exposes these controls in its later milestone. Each cell and
-strategy receives fresh services, counters, origin data, retry budget, and clock.
-For example:
-
-```python
-import asyncio
-from bandwidth_throttle_tester.app import Lab
-
-async def compare():
-    lab = Lab()
-    job = lab.start({'mode': 'boundary', 'size_bytes': 262144,
-                     'bandwidths': [256, 1024], 'outages': [0, 2],
-                     'trials': 3, 'delay_ms': 0, 'deadline_s': 30})
-    await lab.task
-    return lab.snapshot(job)
-
-results = asyncio.run(compare())
-```
-
-Preserve complete JSON/CSV exports and actual collection date, source revision,
-Python version, configuration, and background load. Inspect phase events to see
-whether each upload actually reached its outage. Count failed trials in success
-rate denominators, exclude cancelled trials, and do not treat short failure time
-as fast completion. Use the [report template](EXPERIMENT_REPORT_TEMPLATE.md) and
-[metric definitions](METRICS.md).
+The reconstruction also ran a separate 2 MiB demonstration with three uploads,
+a different phase schedule, and a 120-second deadline. Its timings are not the
+report's 27-trial results. See [additional validation](RECONSTRUCTION_VALIDATION.md)
+and [saved reconstruction records](../validation/reconstruction-2026-10-29/verification.md).

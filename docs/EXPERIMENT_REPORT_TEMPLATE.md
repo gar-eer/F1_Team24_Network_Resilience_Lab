@@ -22,8 +22,8 @@ do not treat this document as evidence of an executed experiment.
 | Resumable commit size | [config.chunk_bytes, or not applicable] |
 | Planned trials per scenario | [count] |
 
-Historical milestone dates in the reconstructed Git history are not evidence
-of when experimental data was collected. Record the actual collection date.
+Record when experimental data was collected, along with the source revision
+and exact configuration used for the run.
 
 ## Configuration
 

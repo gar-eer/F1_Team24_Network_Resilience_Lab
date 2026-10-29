@@ -11,9 +11,9 @@ The report's 0.5 MiB, 27-upload dataset is in
 [docs/step2-experiments](../docs/step2-experiments/README.md), including raw exports,
 summary statistics, screenshots, and its original checksum manifest.
 
-## Additional reconstruction checks
+## Supplemental validation
 
-[reconstruction-2026-10-29](reconstruction-2026-10-29/verification.md) preserves
+[additional-2026-10-29](additional-2026-10-29/verification.md) preserves
 the newer 2 MiB demo, dashboard checks, test output, and exact source comparison.
 These additional observations do not replace or modify the original evidence.
 

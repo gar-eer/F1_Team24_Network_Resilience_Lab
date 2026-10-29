@@ -150,13 +150,7 @@ Current validation covers 18 networking/scheduler integration tests and the full
 
 - [Architecture](docs/ARCHITECTURE.md) and [development](docs/DEVELOPMENT.md)
 - [Experiments](docs/EXPERIMENTS.md), [metrics](docs/METRICS.md), and [boundaries](docs/BOUNDARY_EXPERIMENTS.md)
-- [Contributing](CONTRIBUTING.md), [changelog](CHANGELOG.md), and [history provenance](docs/HISTORY_RECONSTRUCTION.md)
-
-The reconstructed allocation is approximately 60% Sreerag Aneesh
-([gar-eer](https://github.com/gar-eer)) and 40% Rini Vaishnavi
-([rini-7](https://github.com/rini-7)). Each contributor owns their feature merges.
-The dates and allocations describe a reconstructed timeline, not verified past
-contributions, GitHub PRs, reviews, or approvals.
+- [Contributing](CONTRIBUTING.md) and [changelog](CHANGELOG.md)
 
 ## Dashboard appearance
 
@@ -170,5 +164,5 @@ The original 27-upload, 0.5 MiB evaluation, raw exports, summaries, screenshots,
 analysis script, and checksum manifest are preserved unchanged in
 [Step 2 evidence](docs/step2-experiments/README.md). See the
 [experiment index](docs/EXPERIMENTS.md) and [validation index](validation/README.md).
-The newer 2 MiB reconstruction demo is kept separately and is not a replacement
+The additional 2 MiB validation demo is kept separately and is not a replacement
 for the report data.

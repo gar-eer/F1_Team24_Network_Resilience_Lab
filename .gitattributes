@@ -9,4 +9,4 @@ docs/step2-experiments/** -text
 validation/demo-results.json -text
 validation/step1-* -text
 validation/verification.md -text
-validation/reconstruction-2026-10-29/** -text
+validation/additional-2026-10-29/** -text

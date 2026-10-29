@@ -4,7 +4,7 @@ The report **Comparative Evaluation of File-Upload Recovery Strategies under
 Controlled Network Disruption** uses the original 27-upload evaluation collected
 on 25 October 2026. Its raw exports, analysis, statistics, screenshots, and
 checksum manifest are restored unchanged in [step2-experiments](step2-experiments/README.md).
-They are distinct from the additional 29 October reconstruction checks.
+They are distinct from the additional 29 October validation checks.
 
 ## Evaluation settings
 
@@ -58,7 +58,7 @@ them separately rather than replacing the original report evidence.
 
 ## Additional validation
 
-The reconstruction also ran a separate 2 MiB demonstration with three uploads,
+Additional validation includes a separate 2 MiB demonstration with three uploads,
 a different phase schedule, and a 120-second deadline. Its timings are not the
-report's 27-trial results. See [additional validation](RECONSTRUCTION_VALIDATION.md)
-and [saved reconstruction records](../validation/reconstruction-2026-10-29/verification.md).
+report's 27-trial results. See [additional validation](SUPPLEMENTAL_VALIDATION.md)
+and [saved validation records](../validation/additional-2026-10-29/verification.md).

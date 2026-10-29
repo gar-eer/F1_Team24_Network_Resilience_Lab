@@ -21,6 +21,5 @@ cancellation, serial fairness, exports, input validation, and origin guards.
 
 Start focused branches from `main`, include relevant validation in each commit
 and PR, and integrate with merge commits. Authors and committers use their own
-identities. Contributor-owned merges preserve the intended 60:40 overall
-reconstruction allocation. See [contributing](../CONTRIBUTING.md) and
-[history provenance](HISTORY_RECONSTRUCTION.md).
+identities. See [contributing](../CONTRIBUTING.md) for review and validation
+guidelines.

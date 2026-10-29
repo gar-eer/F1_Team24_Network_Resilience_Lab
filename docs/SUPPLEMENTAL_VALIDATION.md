@@ -1,4 +1,4 @@
-# Additional reconstruction validation
+# Supplemental validation
 
 The current application is the localhost trial/service implementation, replacing
 the earlier prototype CLI. Run the full experiment without the frontend:
@@ -11,7 +11,7 @@ It uses a deterministic 2 MiB payload, one independent trial per strategy, and
 the `demo` schedule: 2,000 kbps at 0 s, 256 kbps at 3 s, offline at 7 s, and
 2,000 kbps restored at 12 s. The deadline is 120 seconds, the default commit
 chunk is 32 KiB, and each request has a 20 ms configured delay. All trial data
-and hashes are in [raw JSON](../validation/reconstruction-2026-10-29/demo-results.json).
+and hashes are in [raw JSON](../validation/additional-2026-10-29/demo-results.json).
 
 These three 2 MiB demo trials are additional validation, separate from the
 27-upload, 0.5 MiB evaluation used by the report. See the
@@ -20,10 +20,10 @@ These three 2 MiB demo trials are additional validation, separate from the
 The demo runner writes `validation/demo-results.json` when rerun. The saved
 29 October measurements linked here remain in their separate folder.
 
-## Measurements from this reconstruction
+## Measured results
 
-Collected on **29 October 2026**, independently of reconstructed Git milestone
-dates. These are observations from one local run, not universal expected timings.
+Collected on **29 October 2026**. These are observations from one local run,
+not universal expected timings.
 
 | Strategy | Outcome | Seconds | Proxy ingress bytes | Repeated/discarded bytes | Retries | Hash integrity |
 | --- | --- | ---: | ---: | ---: | ---: | --- |

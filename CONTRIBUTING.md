@@ -13,5 +13,5 @@ run `python -m tests.run_demo` and inspect the saved raw measurements. For UI
 changes, check the actual controls, narrow layouts, exports, and both themes.
 
 PRs should state the problem, resulting behavior, and validation performed.
-Use your own Git identity and a verified account email. Review is real work:
-do not describe a local merge as an actual GitHub approval or PR.
+Use your own Git identity and a verified account email. Link relevant issues
+and include reproducible validation results for reviewers.

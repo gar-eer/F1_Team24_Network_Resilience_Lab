@@ -1,33 +1,63 @@
-# Validation record
+# Verification record
 
-Actual collection: 29 October 2026. Git milestone dates are reconstructed.
-Environment: Python 3.13.13 on Windows.
+Validated on Windows with Python 3.13.13. No external dependencies were installed.
 
-- Networking/scheduler integration suite: 18 tests passed before frontend integration.
-- Full `python -m tests.run_demo`: passed all recovery and integrity assertions.
-- Raw measurements: [demo-results.json](demo-results.json).
-- Interpreted observations: [experiment report](../docs/EXPERIMENTS.md).
+## Automated integration suite
 
-The root-page assertion is restored when the frontend is introduced. Final
-source parity and UI/API integration are verified in the later release stages.
+Command: `python -m unittest discover -v`
 
-## Dashboard integration milestone
+Final run: **17 tests passed in 24.838 seconds** (exit code 0).
 
-The complete 18-test suite passed with its root-page assertion restored.
-Fifteen additional live-service checks passed for static assets, metadata,
-configuration errors, origin guards, comparison completion, hashes, and CSV/JSON
-exports. Browser checks confirmed three verified strategy rows, measured SVG
-chart data, inspection details, and no console warnings/errors. See
-[raw integration checks](dashboard-integration.json).
+Coverage:
 
-Source line endings are preserved with `.gitattributes` so matching the original
-means matching bytes, not only equivalent normalized text. Layout and theme
-remain the final two staged frontend changes.
+- Body bytes pass through actual loopback proxy and origin sockets; completed origin hashes match source bytes.
+- A 256 kbps transfer takes measurably longer than the equivalent 1,024 kbps transfer, within the specified test tolerance.
+- Concurrent connections share one bandwidth allowance rather than receiving separate allowances.
+- Basic fails on interruption; Retry restarts and records extra ingress bytes; Resumable resumes from a nonzero confirmed offset and wastes fewer bytes.
+- Sudden rate changes and repeated outages are exercised during real uploads.
+- Retry exhaustion, per-request delay, origin errors, hash corruption and completion deadlines are handled.
+- Cancellation during an upload and cancellation before the scheduler's first turn both terminate and clean up.
+- Serial repeated sweep trials reuse identical payload hashes and fresh scenario clocks.
+- The API accepts selected file bytes, rejects invalid configurations/cross-origin writes, and exports results.
 
-## Final release checks
+The sandbox blocked loopback socket setup, so meaningful socket tests were rerun with explicit execution permission outside the sandbox. Initial failures exposed Windows server shutdown ordering and pacing timer oversleep; both were fixed before the final passing run.
 
-The release suite passed all 18 tests; see [full output](network-tests.txt).
-Browser checks verified light-mode persistence after reload, measured charts,
-row inspection, a completed boundary map, and a 390-pixel responsive layout.
-No console warnings or errors were observed. All 14 original application and
-test files match byte-for-byte; see [source hashes](exact-source-match.json).
+## Full-duration demonstration
+
+Command: `python -m tests.run_demo`
+
+**Passed** all demo assertions (exit code 0). The payload was exactly 2,097,152 bytes. Phases: 2,000 kbps at t=0, 256 kbps at t=3, offline at t=7, restored to 2,000 kbps at t=12. Raw measured results, events and traces: `demo-results.json`.
+
+| Strategy | Outcome | Elapsed seconds | Proxy ingress bytes | Application repeated/discarded bytes | Retries |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Basic | Failed on outage | 7.03 | 860,160 | 860,160 | 0 |
+| Retry | SHA-256 verified | 21.37 | 2,957,312 | 860,160 | 5 |
+| Resumable | SHA-256 verified | 19.98 | 2,125,824 | 28,672 | 5 |
+
+These measurements describe this run and are not performance guarantees.
+
+## Browser checks
+
+The served dashboard was exercised with its real UI controls:
+
+- Generated a 128 KiB payload, ran all three strategies under stable 2,048 kbps conditions, and observed three verified successes.
+- Selected a result row and observed matching original/origin SHA-256 values and exact body-byte counters.
+- Ran a 12-trial boundary sweep with a 128 KiB payload, bandwidths 512 and 1,024 kbps, outage durations 0 and 1 second, one trial per strategy, and a five-second deadline.
+- Observed all twelve completed results. The zero-outage cells succeeded for all strategies. In both outage cells, Basic failed while Retry and Resumable succeeded. The success-rate table displayed these outcomes correctly.
+- Read the browser error/warning log after the sweep: no entries.
+- Inspected the rendered interface at the browser's narrow default viewport; the configuration and monitor stack, controls remain usable, and result tables scroll horizontally.
+
+CSV/JSON response behavior and actual selected-file transfer were covered by the automated API integration test. Browser export links were observed to point to the corresponding download endpoints. Full demonstration measurements were independently generated by the command above.
+
+## Static checks
+
+- `python -m compileall -q main.py bandwidth_throttle_tester tests` passed.
+- `node --check bandwidth_throttle_tester/static/app.js` passed.
+
+## Scope of verification
+
+Actual loopback application bytes and wall-clock pacing were tested. No remote/mobile network, real packet loss, NIC wire-byte measurement, transport retransmission measurement, large-scale concurrency, persistent server restart recovery, or production security audit was performed. Python and Windows timer scheduling constrain precision, especially at high bandwidth or short phases. The app explicitly reports unmeasured transport metrics as unavailable.
+
+## Latest submission-preparation verification
+
+On 25 October 2026, Step 1 verification found and fixed a buffered-upload cancellation bug, then passed the expanded 18-test suite and browser control checks. See [step1-verification.md](step1-verification.md) for the latest findings, test log and downloaded result evidence.

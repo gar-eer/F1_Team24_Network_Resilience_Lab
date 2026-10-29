@@ -1,0 +1,1779 @@
+{
+  "config": {
+    "scenario": "demo",
+    "strategies": [
+      "basic",
+      "retry",
+      "resumable"
+    ],
+    "phases": [
+      {
+        "at": 0,
+        "kbps": 2000
+      },
+      {
+        "at": 3,
+        "kbps": 256
+      },
+      {
+        "at": 7,
+        "kbps": 0
+      },
+      {
+        "at": 12,
+        "kbps": 2000
+      }
+    ],
+    "size_bytes": 2097152,
+    "trials": 1,
+    "delay_ms": 20,
+    "deadline_s": 120,
+    "max_retries": 12,
+    "chunk_bytes": 32768
+  },
+  "metric_definitions": {
+    "elapsed_s": "Monotonic seconds from trial start through hash verification or terminal error.",
+    "bytes_sent": "Upload body bytes read at proxy ingress, including repeated and discarded bytes. Excludes HTTP headers and unread OS buffers.",
+    "client_submitted_bytes": "Body bytes submitted by the client to its socket; may include buffered bytes never read by the proxy.",
+    "forwarded_bytes": "Body bytes submitted by the proxy to the origin socket; excludes headers. Not a wire-level measurement.",
+    "confirmed_bytes": "Server-confirmed contiguous committed payload bytes. Full uploads and resumable chunks commit atomically.",
+    "retransmission_bytes": "max(0, proxy ingress bytes minus final origin committed unique bytes). Repeated/discarded application work, including failed partial bodies.",
+    "overhead_percent": "100 * retransmission_bytes / payload bytes; available for verified successes only.",
+    "useful_kbps": "Verified payload bytes * 8 / elapsed seconds / 1000 on success; unavailable on failure.",
+    "recovery_s": "Per restored phase: seconds from scheduled restoration to first subsequent acknowledgement that increases confirmed bytes; null when unobserved.",
+    "retry_count": "Additional upload attempts begun after failure. Offset probes and successful chunks are not retries.",
+    "success_rate": "Verified successes / completed trials in the same strategy/configuration cell. Cancelled trials excluded.",
+    "integrity": "SHA-256 of original payload compared with SHA-256 of committed origin bytes; null unless a complete file is verified.",
+    "transport_overhead": "Unavailable: TCP/IP headers, packet loss and TCP retransmissions are not measured."
+  },
+  "results": [
+    {
+      "strategy": "basic",
+      "trial": 1,
+      "status": "failed",
+      "elapsed_s": 7.009932500001014,
+      "payload_bytes": 2097152,
+      "bytes_sent": 864256,
+      "client_submitted_bytes": 1179648,
+      "forwarded_bytes": 860160,
+      "confirmed_bytes": 0,
+      "retry_count": 0,
+      "integrity": null,
+      "expected_sha256": "91d3beb88a9b2f778a6c44a1c53b63d3c79931845a9aef84b3fb414610bd1938",
+      "actual_sha256": null,
+      "useful_kbps": null,
+      "overhead_percent": null,
+      "transport_overhead": null,
+      "events": [
+        {
+          "at": 0.0,
+          "kind": "start",
+          "message": "Basic upload started"
+        },
+        {
+          "at": 0.001,
+          "kind": "network",
+          "message": "Bandwidth -> 2000 kbps"
+        },
+        {
+          "at": 3.015,
+          "kind": "network",
+          "message": "Bandwidth -> 256 kbps"
+        },
+        {
+          "at": 7.007,
+          "kind": "network",
+          "message": "Outage: active connections interrupted"
+        },
+        {
+          "at": 7.01,
+          "kind": "interruption",
+          "message": "Upload interrupted at 0 confirmed bytes"
+        },
+        {
+          "at": 7.01,
+          "kind": "error",
+          "message": "Single upload interrupted"
+        }
+      ],
+      "samples": [
+        {
+          "at": 0.216,
+          "kbps": 1514.3189746775759,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 0.435,
+          "kbps": 1947.848735175369,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 0.653,
+          "kbps": 1955.573755219266,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 0.873,
+          "kbps": 1938.2776436649003,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.097,
+          "kbps": 2048.010971486272,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.315,
+          "kbps": 1953.1134302029996,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.532,
+          "kbps": 1961.293839552015,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.749,
+          "kbps": 1966.0297906222163,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.967,
+          "kbps": 1951.9061583401542,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.188,
+          "kbps": 1922.377266716168,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.41,
+          "kbps": 2068.9042454633814,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.633,
+          "kbps": 1911.7904455206642,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.855,
+          "kbps": 1918.657573861479,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.079,
+          "kbps": 1609.0932913230863,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.302,
+          "kbps": 293.91345841749677,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.524,
+          "kbps": 295.14166448805906,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.745,
+          "kbps": 148.2658577684053,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.967,
+          "kbps": 295.8507492164338,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.186,
+          "kbps": 298.2604809426047,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.404,
+          "kbps": 300.73559441976397,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.624,
+          "kbps": 149.0253185670981,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.845,
+          "kbps": 296.99237217121987,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.066,
+          "kbps": 295.79306400955386,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.289,
+          "kbps": 293.73008886783794,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.51,
+          "kbps": 148.37065314635606,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.732,
+          "kbps": 295.1056483296153,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.951,
+          "kbps": 299.4246437743437,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.171,
+          "kbps": 149.1602453005623,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.389,
+          "kbps": 300.6639877142856,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.604,
+          "kbps": 304.3264450942654,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.82,
+          "kbps": 151.6341345230699,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        }
+      ],
+      "recoveries": [],
+      "config": {
+        "scenario": "demo",
+        "strategies": [
+          "basic",
+          "retry",
+          "resumable"
+        ],
+        "phases": [
+          {
+            "at": 0,
+            "kbps": 2000
+          },
+          {
+            "at": 3,
+            "kbps": 256
+          },
+          {
+            "at": 7,
+            "kbps": 0
+          },
+          {
+            "at": 12,
+            "kbps": 2000
+          }
+        ],
+        "size_bytes": 2097152,
+        "trials": 1,
+        "delay_ms": 20,
+        "deadline_s": 120,
+        "max_retries": 12,
+        "chunk_bytes": 32768
+      },
+      "error": "Single upload interrupted",
+      "network_kbps": 0,
+      "retransmission_bytes": 864256
+    },
+    {
+      "strategy": "retry",
+      "trial": 1,
+      "status": "completed",
+      "elapsed_s": 21.3894575000013,
+      "payload_bytes": 2097152,
+      "bytes_sent": 2961408,
+      "client_submitted_bytes": 3391488,
+      "forwarded_bytes": 2957312,
+      "confirmed_bytes": 2097152,
+      "retry_count": 5,
+      "integrity": true,
+      "expected_sha256": "91d3beb88a9b2f778a6c44a1c53b63d3c79931845a9aef84b3fb414610bd1938",
+      "actual_sha256": "91d3beb88a9b2f778a6c44a1c53b63d3c79931845a9aef84b3fb414610bd1938",
+      "useful_kbps": 784.3684675031604,
+      "overhead_percent": 41.2109375,
+      "transport_overhead": null,
+      "events": [
+        {
+          "at": 0.0,
+          "kind": "start",
+          "message": "Retry upload started"
+        },
+        {
+          "at": 0.001,
+          "kind": "network",
+          "message": "Bandwidth -> 2000 kbps"
+        },
+        {
+          "at": 3.03,
+          "kind": "network",
+          "message": "Bandwidth -> 256 kbps"
+        },
+        {
+          "at": 7.03,
+          "kind": "network",
+          "message": "Outage: active connections interrupted"
+        },
+        {
+          "at": 7.032,
+          "kind": "interruption",
+          "message": "Upload interrupted at 0 confirmed bytes"
+        },
+        {
+          "at": 7.032,
+          "kind": "backoff",
+          "message": "Retrying in 0.25s"
+        },
+        {
+          "at": 7.297,
+          "kind": "restart",
+          "message": "Restarting full file from byte zero"
+        },
+        {
+          "at": 7.299,
+          "kind": "interruption",
+          "message": "Upload interrupted at 0 confirmed bytes"
+        },
+        {
+          "at": 7.299,
+          "kind": "backoff",
+          "message": "Retrying in 0.50s"
+        },
+        {
+          "at": 7.807,
+          "kind": "restart",
+          "message": "Restarting full file from byte zero"
+        },
+        {
+          "at": 7.809,
+          "kind": "interruption",
+          "message": "Upload interrupted at 0 confirmed bytes"
+        },
+        {
+          "at": 7.809,
+          "kind": "backoff",
+          "message": "Retrying in 1.00s"
+        },
+        {
+          "at": 8.809,
+          "kind": "restart",
+          "message": "Restarting full file from byte zero"
+        },
+        {
+          "at": 8.812,
+          "kind": "interruption",
+          "message": "Upload interrupted at 0 confirmed bytes"
+        },
+        {
+          "at": 8.812,
+          "kind": "backoff",
+          "message": "Retrying in 2.00s"
+        },
+        {
+          "at": 10.824,
+          "kind": "restart",
+          "message": "Restarting full file from byte zero"
+        },
+        {
+          "at": 10.826,
+          "kind": "interruption",
+          "message": "Upload interrupted at 0 confirmed bytes"
+        },
+        {
+          "at": 10.826,
+          "kind": "backoff",
+          "message": "Retrying in 2.00s"
+        },
+        {
+          "at": 12.006,
+          "kind": "network",
+          "message": "Bandwidth -> 2000 kbps"
+        },
+        {
+          "at": 12.833,
+          "kind": "restart",
+          "message": "Restarting full file from byte zero"
+        },
+        {
+          "at": 21.389,
+          "kind": "recovery",
+          "message": "Progress recovered after 9.39s"
+        },
+        {
+          "at": 21.389,
+          "kind": "complete",
+          "message": "SHA-256 verified by upload origin"
+        }
+      ],
+      "samples": [
+        {
+          "at": 0.21,
+          "kbps": 1556.7441016472478,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 0.429,
+          "kbps": 1946.1330345915383,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 0.649,
+          "kbps": 1936.054182477933,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 0.867,
+          "kbps": 1957.4500544350394,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.084,
+          "kbps": 1962.9432167346342,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.303,
+          "kbps": 1942.6787901607527,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.524,
+          "kbps": 2082.970659635102,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.742,
+          "kbps": 1946.6381758406837,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 1.96,
+          "kbps": 1957.5966795068173,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.181,
+          "kbps": 1930.0542021172473,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.401,
+          "kbps": 1934.763325505352,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.621,
+          "kbps": 2083.6508947386965,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 2.841,
+          "kbps": 1933.3048318832957,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.062,
+          "kbps": 1630.5334174154991,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.285,
+          "kbps": 294.91455100829654,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.506,
+          "kbps": 296.4166405111216,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.727,
+          "kbps": 295.8689140341022,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 3.95,
+          "kbps": 147.04945238024976,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.169,
+          "kbps": 299.16043719956883,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.391,
+          "kbps": 295.2653292564217,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.614,
+          "kbps": 293.66625307291673,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 4.835,
+          "kbps": 148.527148086136,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.052,
+          "kbps": 302.38294518952085,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.269,
+          "kbps": 301.68556497703867,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.489,
+          "kbps": 148.78496966680402,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.71,
+          "kbps": 297.1018336286115,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 5.929,
+          "kbps": 298.78277567724376,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.153,
+          "kbps": 292.7789879603149,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.373,
+          "kbps": 148.54196056498168,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.592,
+          "kbps": 300.23588784673456,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 6.809,
+          "kbps": 301.2847447918403,
+          "limit_kbps": 256,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 7.03,
+          "kbps": 148.65227172532002,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 7.25,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 7.468,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 7.683,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 7.902,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 8.121,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 8.341,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 8.561,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 8.779,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 8.996,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 9.215,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 9.433,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 9.651,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 9.871,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 10.09,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 10.308,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 10.526,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 10.745,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 10.965,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 11.186,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 11.409,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 11.631,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 11.85,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 12.069,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 12.288,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 12.507,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 12.723,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 12.944,
+          "kbps": 593.5629718660698,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 13.165,
+          "kbps": 1929.768292272078,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 13.386,
+          "kbps": 1927.7431208406626,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 13.608,
+          "kbps": 2063.011169215013,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 13.829,
+          "kbps": 1929.5829769934955,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 14.05,
+          "kbps": 1929.5471418406812,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 14.27,
+          "kbps": 1937.1740843542593,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 14.489,
+          "kbps": 2090.673063912531,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 14.707,
+          "kbps": 1956.614800671371,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 14.923,
+          "kbps": 1967.9780391243733,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 15.143,
+          "kbps": 1935.971473788196,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 15.361,
+          "kbps": 1957.7802166688746,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 15.578,
+          "kbps": 1959.5561852455642,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 15.795,
+          "kbps": 1967.7244121719589,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 16.011,
+          "kbps": 1969.9930122513647,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 16.23,
+          "kbps": 1947.708909917221,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 16.452,
+          "kbps": 2064.6778036728087,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 16.674,
+          "kbps": 1916.4719754861635,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 16.892,
+          "kbps": 1952.3579274031126,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 17.112,
+          "kbps": 1941.0172861805152,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 17.33,
+          "kbps": 1950.8325925871336,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 17.549,
+          "kbps": 2093.8210298454524,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 17.765,
+          "kbps": 1974.7848516439967,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 17.982,
+          "kbps": 1966.1341443102356,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 18.199,
+          "kbps": 1956.281437697888,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 18.416,
+          "kbps": 1966.9775470007098,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 18.633,
+          "kbps": 1964.1107523377302,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 18.852,
+          "kbps": 1942.2580555564145,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 19.074,
+          "kbps": 1922.3382286947312,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 19.292,
+          "kbps": 1948.8066770624068,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 19.511,
+          "kbps": 2098.328982731087,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 19.731,
+          "kbps": 1935.2362053501156,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 19.954,
+          "kbps": 1913.198601958284,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 20.175,
+          "kbps": 2072.6534728325037,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 20.396,
+          "kbps": 1924.66940529029,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 20.616,
+          "kbps": 1942.2483143453571,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 20.833,
+          "kbps": 1959.8194322296963,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 21.053,
+          "kbps": 1939.6765262816068,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        },
+        {
+          "at": 21.274,
+          "kbps": 2075.6731712491737,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 0
+        }
+      ],
+      "recoveries": [
+        {
+          "restored_at": 12,
+          "recovery_s": 9.389430899998843
+        }
+      ],
+      "config": {
+        "scenario": "demo",
+        "strategies": [
+          "basic",
+          "retry",
+          "resumable"
+        ],
+        "phases": [
+          {
+            "at": 0,
+            "kbps": 2000
+          },
+          {
+            "at": 3,
+            "kbps": 256
+          },
+          {
+            "at": 7,
+            "kbps": 0
+          },
+          {
+            "at": 12,
+            "kbps": 2000
+          }
+        ],
+        "size_bytes": 2097152,
+        "trials": 1,
+        "delay_ms": 20,
+        "deadline_s": 120,
+        "max_retries": 12,
+        "chunk_bytes": 32768
+      },
+      "error": null,
+      "network_kbps": 2000,
+      "retransmission_bytes": 864256
+    },
+    {
+      "strategy": "resumable",
+      "trial": 1,
+      "status": "completed",
+      "elapsed_s": 20.014771300000575,
+      "payload_bytes": 2097152,
+      "bytes_sent": 2125824,
+      "client_submitted_bytes": 2129920,
+      "forwarded_bytes": 2121728,
+      "confirmed_bytes": 2097152,
+      "retry_count": 5,
+      "integrity": true,
+      "expected_sha256": "91d3beb88a9b2f778a6c44a1c53b63d3c79931845a9aef84b3fb414610bd1938",
+      "actual_sha256": "91d3beb88a9b2f778a6c44a1c53b63d3c79931845a9aef84b3fb414610bd1938",
+      "useful_kbps": 838.2417040158493,
+      "overhead_percent": 1.3671875,
+      "transport_overhead": null,
+      "events": [
+        {
+          "at": 0.0,
+          "kind": "start",
+          "message": "Resumable upload started"
+        },
+        {
+          "at": 0.001,
+          "kind": "network",
+          "message": "Bandwidth -> 2000 kbps"
+        },
+        {
+          "at": 3.03,
+          "kind": "network",
+          "message": "Bandwidth -> 256 kbps"
+        },
+        {
+          "at": 7.028,
+          "kind": "network",
+          "message": "Outage: active connections interrupted"
+        },
+        {
+          "at": 7.029,
+          "kind": "interruption",
+          "message": "Upload interrupted at 688,128 confirmed bytes"
+        },
+        {
+          "at": 7.029,
+          "kind": "backoff",
+          "message": "Retrying in 0.25s"
+        },
+        {
+          "at": 7.295,
+          "kind": "interruption",
+          "message": "Upload interrupted at 688,128 confirmed bytes"
+        },
+        {
+          "at": 7.295,
+          "kind": "backoff",
+          "message": "Retrying in 0.50s"
+        },
+        {
+          "at": 7.809,
+          "kind": "interruption",
+          "message": "Upload interrupted at 688,128 confirmed bytes"
+        },
+        {
+          "at": 7.809,
+          "kind": "backoff",
+          "message": "Retrying in 1.00s"
+        },
+        {
+          "at": 8.812,
+          "kind": "interruption",
+          "message": "Upload interrupted at 688,128 confirmed bytes"
+        },
+        {
+          "at": 8.812,
+          "kind": "backoff",
+          "message": "Retrying in 2.00s"
+        },
+        {
+          "at": 10.823,
+          "kind": "interruption",
+          "message": "Upload interrupted at 688,128 confirmed bytes"
+        },
+        {
+          "at": 10.823,
+          "kind": "backoff",
+          "message": "Retrying in 2.00s"
+        },
+        {
+          "at": 12.022,
+          "kind": "network",
+          "message": "Bandwidth -> 2000 kbps"
+        },
+        {
+          "at": 12.865,
+          "kind": "resume",
+          "message": "Server confirmed offset 688,128 bytes"
+        },
+        {
+          "at": 13.037,
+          "kind": "recovery",
+          "message": "Progress recovered after 1.04s"
+        },
+        {
+          "at": 20.015,
+          "kind": "complete",
+          "message": "SHA-256 verified by upload origin"
+        }
+      ],
+      "samples": [
+        {
+          "at": 0.211,
+          "kbps": 1242.8474777964582,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 32768
+        },
+        {
+          "at": 0.433,
+          "kbps": 1770.2018542307267,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 65536
+        },
+        {
+          "at": 0.651,
+          "kbps": 1653.7133859443743,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 98304
+        },
+        {
+          "at": 0.869,
+          "kbps": 1350.6073364106983,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 163840
+        },
+        {
+          "at": 1.089,
+          "kbps": 1644.467336977786,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 196608
+        },
+        {
+          "at": 1.309,
+          "kbps": 1782.616658723127,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 229376
+        },
+        {
+          "at": 1.53,
+          "kbps": 1337.1019121344502,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 294912
+        },
+        {
+          "at": 1.75,
+          "kbps": 1634.072678450516,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 327680
+        },
+        {
+          "at": 1.969,
+          "kbps": 1649.4052818531509,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 360448
+        },
+        {
+          "at": 2.191,
+          "kbps": 1475.1569222644532,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 425984
+        },
+        {
+          "at": 2.409,
+          "kbps": 1652.1095050499773,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 458752
+        },
+        {
+          "at": 2.626,
+          "kbps": 1665.1929546311942,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 491520
+        },
+        {
+          "at": 2.843,
+          "kbps": 1504.9604263567169,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 557056
+        },
+        {
+          "at": 3.062,
+          "kbps": 1201.0491953569392,
+          "limit_kbps": 256,
+          "confirmed_bytes": 589824
+        },
+        {
+          "at": 3.282,
+          "kbps": 297.2271468325099,
+          "limit_kbps": 256,
+          "confirmed_bytes": 589824
+        },
+        {
+          "at": 3.499,
+          "kbps": 301.4534031923622,
+          "limit_kbps": 256,
+          "confirmed_bytes": 589824
+        },
+        {
+          "at": 3.723,
+          "kbps": 292.909713137114,
+          "limit_kbps": 256,
+          "confirmed_bytes": 589824
+        },
+        {
+          "at": 3.94,
+          "kbps": 150.87271634168889,
+          "limit_kbps": 256,
+          "confirmed_bytes": 589824
+        },
+        {
+          "at": 4.157,
+          "kbps": 302.0951118358931,
+          "limit_kbps": 256,
+          "confirmed_bytes": 622592
+        },
+        {
+          "at": 4.374,
+          "kbps": 151.07582975744884,
+          "limit_kbps": 256,
+          "confirmed_bytes": 622592
+        },
+        {
+          "at": 4.597,
+          "kbps": 293.87418332093154,
+          "limit_kbps": 256,
+          "confirmed_bytes": 622592
+        },
+        {
+          "at": 4.821,
+          "kbps": 292.70615180112554,
+          "limit_kbps": 256,
+          "confirmed_bytes": 622592
+        },
+        {
+          "at": 5.042,
+          "kbps": 296.2478110081722,
+          "limit_kbps": 256,
+          "confirmed_bytes": 622592
+        },
+        {
+          "at": 5.263,
+          "kbps": 148.40263816700866,
+          "limit_kbps": 256,
+          "confirmed_bytes": 655360
+        },
+        {
+          "at": 5.484,
+          "kbps": 296.6675599520906,
+          "limit_kbps": 256,
+          "confirmed_bytes": 655360
+        },
+        {
+          "at": 5.707,
+          "kbps": 147.2512618473033,
+          "limit_kbps": 256,
+          "confirmed_bytes": 655360
+        },
+        {
+          "at": 5.93,
+          "kbps": 293.73022051771085,
+          "limit_kbps": 256,
+          "confirmed_bytes": 655360
+        },
+        {
+          "at": 6.153,
+          "kbps": 293.84295524877876,
+          "limit_kbps": 256,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 6.373,
+          "kbps": 148.99807795829835,
+          "limit_kbps": 256,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 6.593,
+          "kbps": 296.80097496365,
+          "limit_kbps": 256,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 6.811,
+          "kbps": 301.71625983859553,
+          "limit_kbps": 256,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 7.028,
+          "kbps": 151.00175526451824,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 7.247,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 7.465,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 7.682,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 7.9,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 8.116,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 8.337,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 8.559,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 8.777,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 8.997,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 9.215,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 9.436,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 9.655,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 9.872,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 10.091,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 10.309,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 10.526,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 10.743,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 10.96,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 11.177,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 11.394,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 11.613,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 11.833,
+          "kbps": 0.0,
+          "limit_kbps": 0,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 12.053,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 12.27,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 12.49,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 12.707,
+          "kbps": 0.0,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 12.926,
+          "kbps": 149.50112303570867,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 688128
+        },
+        {
+          "at": 13.145,
+          "kbps": 1645.450756513534,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 720896
+        },
+        {
+          "at": 13.364,
+          "kbps": 1648.1171488695365,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 753664
+        },
+        {
+          "at": 13.568,
+          "kbps": 1441.1723599330871,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 819200
+        },
+        {
+          "at": 13.787,
+          "kbps": 1646.336088290105,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 851968
+        },
+        {
+          "at": 14.004,
+          "kbps": 1664.972199487508,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 884736
+        },
+        {
+          "at": 14.223,
+          "kbps": 1497.5994442507417,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 950272
+        },
+        {
+          "at": 14.425,
+          "kbps": 1456.2937080244799,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 983040
+        },
+        {
+          "at": 14.643,
+          "kbps": 1658.0333761362879,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1015808
+        },
+        {
+          "at": 14.862,
+          "kbps": 1644.2295410801732,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1048576
+        },
+        {
+          "at": 15.066,
+          "kbps": 1443.557438681202,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1114112
+        },
+        {
+          "at": 15.284,
+          "kbps": 1650.7831244975425,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1146880
+        },
+        {
+          "at": 15.5,
+          "kbps": 1670.8416694431412,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1179648
+        },
+        {
+          "at": 15.719,
+          "kbps": 1499.537572411494,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1245184
+        },
+        {
+          "at": 15.935,
+          "kbps": 1517.2828930654896,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1277952
+        },
+        {
+          "at": 16.15,
+          "kbps": 1672.7359466347862,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1310720
+        },
+        {
+          "at": 16.369,
+          "kbps": 1648.7760474307497,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1376256
+        },
+        {
+          "at": 16.589,
+          "kbps": 1488.0213103872857,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1409024
+        },
+        {
+          "at": 16.811,
+          "kbps": 1623.2221352090153,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1441792
+        },
+        {
+          "at": 17.032,
+          "kbps": 1630.7119344553312,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1507328
+        },
+        {
+          "at": 17.237,
+          "kbps": 1437.3631965385116,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1540096
+        },
+        {
+          "at": 17.458,
+          "kbps": 1632.8350014173564,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1572864
+        },
+        {
+          "at": 17.677,
+          "kbps": 1792.302801165888,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1605632
+        },
+        {
+          "at": 17.897,
+          "kbps": 1344.6450969880968,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1671168
+        },
+        {
+          "at": 18.114,
+          "kbps": 1657.8495899582867,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1703936
+        },
+        {
+          "at": 18.332,
+          "kbps": 1657.944147044582,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1736704
+        },
+        {
+          "at": 18.563,
+          "kbps": 1276.0367539036545,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1802240
+        },
+        {
+          "at": 18.781,
+          "kbps": 1649.6408024053082,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1835008
+        },
+        {
+          "at": 19.0,
+          "kbps": 1796.3238075459687,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1867776
+        },
+        {
+          "at": 19.216,
+          "kbps": 1368.0789918481594,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1933312
+        },
+        {
+          "at": 19.434,
+          "kbps": 1654.1323019534227,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1966080
+        },
+        {
+          "at": 19.651,
+          "kbps": 1656.859676145531,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 1998848
+        },
+        {
+          "at": 19.872,
+          "kbps": 1482.127446322038,
+          "limit_kbps": 2000,
+          "confirmed_bytes": 2064384
+        }
+      ],
+      "recoveries": [
+        {
+          "restored_at": 12,
+          "recovery_s": 1.0367811000032816
+        }
+      ],
+      "config": {
+        "scenario": "demo",
+        "strategies": [
+          "basic",
+          "retry",
+          "resumable"
+        ],
+        "phases": [
+          {
+            "at": 0,
+            "kbps": 2000
+          },
+          {
+            "at": 3,
+            "kbps": 256
+          },
+          {
+            "at": 7,
+            "kbps": 0
+          },
+          {
+            "at": 12,
+            "kbps": 2000
+          }
+        ],
+        "size_bytes": 2097152,
+        "trials": 1,
+        "delay_ms": 20,
+        "deadline_s": 120,
+        "max_retries": 12,
+        "chunk_bytes": 32768
+      },
+      "error": null,
+      "network_kbps": 2000,
+      "retransmission_bytes": 28672
+    }
+  ]
+}

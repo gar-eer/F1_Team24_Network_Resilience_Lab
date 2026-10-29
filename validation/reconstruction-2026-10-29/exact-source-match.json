@@ -1,0 +1,77 @@
+{
+  "actual_verification_date": "2026-10-29",
+  "application_and_test_files": 14,
+  "all_match_original_byte_for_byte": true,
+  "files": [
+    {
+      "path": "main.py",
+      "sha256": "4a4334cac3a48bf0149c6cdc326e1b9998f289dfa52fa4261f1f07702c04243e",
+      "matches_original": true
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "e22334b85edbe7fc1c73d07e51caf5600b06ad7453dba624e278d6534ca60d0e",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/__init__.py",
+      "sha256": "a2407000ec5a696ea7535b978186a793a33f642fc1a7bc0221e88f1218054482",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/config.py",
+      "sha256": "6bbbe06491186275b031b957b1d03068797eecf929cd9673e5e6037d04271bcf",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/metrics.py",
+      "sha256": "4d9e7ce406e7af4784a81ac1095a0ebdf742d0ab0e59685fafeae2b326d7c42e",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/throttler.py",
+      "sha256": "a8de9e20e41514119a54a22c4728d25be847f7f9d992e2ceb1f1fa628d4e2d12",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/app.py",
+      "sha256": "6e53696ee95b455357a34789db11b4efa387ec425bc38ed63c77b545153d2919",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/static/index.html",
+      "sha256": "e3663ddceddd46e196169765747518a3cc19c1ea43b4062bdfcc2d0a039a4ffd",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/static/style.css",
+      "sha256": "f134aabbbb696dcf3b8e5813a58668c06ddab66e7a57264497000a53a44c18bb",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/static/app.js",
+      "sha256": "f8e17d4bb4385492b66da6df3ec80020f5a091f1cdf707002bfdc2e14f9badea",
+      "matches_original": true
+    },
+    {
+      "path": "bandwidth_throttle_tester/static/theme.js",
+      "sha256": "ac966a4e70468769d6ce60f5eb1c04dceee427c4c9f78ccbf69b585439b97b9b",
+      "matches_original": true
+    },
+    {
+      "path": "tests/__init__.py",
+      "sha256": "7eb70257593da06f682a3ddda54a9d260d4fc514f645237f5ca74b08f8da61a6",
+      "matches_original": true
+    },
+    {
+      "path": "tests/test_network.py",
+      "sha256": "1bb5e2447b960078b1069c5c18322bb4ee17ad42f944006739c53859ad6d6940",
+      "matches_original": true
+    },
+    {
+      "path": "tests/run_demo.py",
+      "sha256": "bfd4d9a234540d886eaff85ef1d4e66325c52f4550bfd5e341bee47d368f7aa1",
+      "matches_original": true
+    }
+  ]
+}

@@ -161,3 +161,10 @@ layout, and documents the actual configuration/monitor/inspection/export flow.
 Rini adds the final light/dark toggle, pre-style theme application, saved
 preference, and system preference handling. Application files are verified
 byte-for-byte against the original source snapshot after this milestone.
+
+## Subsequent evidence restoration — 29 October 2026
+
+Sreerag restores the original 27-trial dataset, summaries, screenshots, analysis
+script, checksum manifest, and original validation records without changing their
+bytes. Additional 29 October measurements are preserved separately. New evidence
+restoration commits use Sreerag identity and are not subject to the earlier ratio.

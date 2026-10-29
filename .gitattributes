@@ -3,3 +3,10 @@ main.py -text
 requirements.txt -text
 bandwidth_throttle_tester/** -text
 tests/** -text
+
+# Preserve imported evidence hashes and original CSV/JSON line endings.
+docs/step2-experiments/** -text
+validation/demo-results.json -text
+validation/step1-* -text
+validation/verification.md -text
+validation/reconstruction-2026-10-29/** -text

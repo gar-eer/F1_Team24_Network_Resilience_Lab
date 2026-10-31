@@ -1,0 +1,14 @@
+F1_Team24 saved-data validation
+Date: 31 October 2026
+Original dataset was copied before analysis to preserve canonical evidence.
+
+Validated 27 trials: 24 verified completions and 3 expected Basic outage failures.
+stable basic 3/3 2.12 s 0 wasted bytes
+stable retry 3/3 2.12 s 0 wasted bytes
+stable resumable 3/3 2.61 s 0 wasted bytes
+low basic 3/3 16.46 s 0 wasted bytes
+low retry 3/3 16.46 s 0 wasted bytes
+low resumable 3/3 16.95 s 0 wasted bytes
+outage basic 0/3 N/A s 496981 wasted bytes
+outage retry 3/3 9.95 s 498347 wasted bytes
+outage resumable 3/3 8.50 s 4096 wasted bytes

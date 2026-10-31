@@ -1,0 +1,31 @@
+{
+  "source_head": "6a3f17700f0b51c2fa4ec0cd8b18355c8bf8e717",
+  "preserved_source_commits": 48,
+  "preserved_branch_tips": {
+    "codex/restore-report-evidence": "d84ead6be31f0b20389eb8c541fba7cac484308a",
+    "docs/experiment-guide": "4faf125a942784eb7832e2da5996afd7273a62fe",
+    "docs/github-readiness": "a2f5135e27702dbcf58e735ff0744d6def097df3",
+    "docs/measured-experiments": "27f7c93fcc8b47d9c09753cb8d7f8c4a4eed4209",
+    "feature/bandwidth-proxy": "84f4d0cac909fa25a79fe51e70a472e470a62f26",
+    "feature/basic-retry-strategies": "64ab3b004476bcd103982a6639ba8067b6d24d72",
+    "feature/configurable-throttling": "ddf27df4c46021def6a8d2b35ffb10979e5b7a03",
+    "feature/http-transfer-engine": "e736a2e83fff20b0f3a71c026cad4b4910442c6d",
+    "feature/integrity-metrics": "5435db120ad1b2ad2a7b07137d1c424d9b7468cd",
+    "feature/light-mode": "587afbe51593f0d42bb5656a610ac96efc023692",
+    "feature/network-cleanup": "9d70ecfec5f9a22ff91890566558c6dec928e290",
+    "feature/original-throttle-tester": "e8a12634ad570dca39e1d4122711b4249aa71085",
+    "feature/project-foundation": "71ac3bcff74b46298c15b43da314b12ce65012a5",
+    "feature/recovery-boundaries": "9ffd2f616a413be9e85b7c2c9effa8d11c687b21",
+    "feature/result-visualizations": "a976742de8413e17e4d5524b66f0d2c179db27d5",
+    "feature/resumable-uploads": "516f717246a33e373165a3017bac6ee4748531cd",
+    "feature/scenario-presets-reporting": "d3e6bb3b99eeacccc2a47689144ec94938018cab",
+    "feature/scenarios-reporting": "0cbe16c0307aeaadb81852a2401e5ddd895695b4",
+    "feature/scheduled-outages": "9ca4f1c5dfe64f599b40eed8ec85caa6498f081f",
+    "feature/web-dashboard": "0a0460e4d8b83c23f130bf51a50b3065ad48a69c",
+    "fix/dashboard-integration": "01ff93b71b9f4609945bf9126ed1b03811e837cb",
+    "main": "6a3f17700f0b51c2fa4ec0cd8b18355c8bf8e717",
+    "style/frontend-layout": "5e53f1af2dd89af7ac2c08c187106a49b065b9d1",
+    "test/network-validation": "aead9947ca03213766ad9c64c3930ccc00adbc45"
+  },
+  "note": "Submission packaging adds new commits; existing commits are retained unchanged."
+}
